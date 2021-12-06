@@ -40,6 +40,65 @@ static const quint16 crc16Table[] =
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
+QString FormatOutput(const QString &str, const uint8_t &data, bool endline = false)
+{
+    if (str.size() >= 6)
+    {
+        return QString().sprintf("%s\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
+    }
+    else
+    {
+        return QString().sprintf("%s\t\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
+    }
+}
+
+QString FormatOutput(const QString &str, const uint16_t &data, bool endline = false)
+{
+    if (str.size() >= 6)
+    {
+        return QString().sprintf("%s\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
+    }
+    else
+    {
+        return QString().sprintf("%s\t\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
+    }
+}
+
+QString FormatOutput(const QString &str, const uint32_t &data, bool endline = false)
+{
+    if (str.size() >= 6)
+    {
+        return QString().sprintf("%s\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
+    }
+    else
+    {
+        return QString().sprintf("%s\t\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
+    }
+}
+
+QString FormatOutput(const QString &str, const uint8_t &data1, const uint8_t &data2)
+{
+    return QString().sprintf("%s\t\t：%0*x%0*x\n",str.toUtf8().data(), sizeof(data1) * 2, data1, sizeof(data2) * 2, data2);
+}
+
+QString FormatOutput(const QString &str, const uint8_t &data1, const uint8_t &data2, const uint8_t &data3, const uint8_t &data4)
+{
+    return QString().sprintf("%s\t\t：%0*x%0*x%0*x%0*x(V%c%c.%c%c)\n", str.toUtf8().data(), sizeof(data1) * 2, data1, sizeof(data2) * 2, data2, sizeof(data3) * 2, data3, sizeof(data4) * 2, data4, data1, data2, data3, data4);
+}
+
+QString FormatOutput(const QString &str, const uint8_t &year, const uint8_t &month, const uint8_t &day, const uint8_t &hour, const uint8_t &min, const uint8_t &sec)
+{
+    if (str.size() >= 6)
+    {
+        return QString().sprintf("%s\t：%0*x/%0*x/%0*x %0*x:%0*x:%0*x\n", str.toUtf8().data(), sizeof(year) * 2, year, sizeof(month) * 2, month, sizeof(day) * 2, day, sizeof(hour) * 2, hour, sizeof(min) * 2, min, sizeof(sec) * 2, sec);
+    }
+    else
+    {
+        return QString().sprintf("%s\t\t：%0*x/%0*x/%0*x %0*x:%0*x:%0*x\n", str.toUtf8().data(), sizeof(year) * 2, year, sizeof(month) * 2, month, sizeof(day) * 2, day, sizeof(hour) * 2, hour, sizeof(min) * 2, min, sizeof(sec) * 2, sec);
+    }
+
+}
+
 XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(parent)
 {
     this->m_frameData = QByteArray::fromHex(inputData.toLocal8Bit());
@@ -129,16 +188,16 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     XINSHENG_PROTOCOL_FRAME_HEADER head;
     memcpy((uint8_t *)&head.StartChar, (uint8_t *)this->m_frameHead.data(), this->m_frameHead.size());
 
-    temp += QString().sprintf("帧头\t\t：%0*x\n", sizeof(head.StartChar) * 2, head.StartChar);
-    temp += QString().sprintf("长度\t\t：%0*x(%d)\n", sizeof(head.FrameLength) * 2, head.FrameLength, head.FrameLength);
-    temp += QString().sprintf("后续帧\t\t：%0*x(%s后续帧)\n", sizeof(head.HasMore) * 2, head.HasMore, head.HasMore?"有":"没有");
-    temp += QString().sprintf("报文ID\t\t：%0*x\n", sizeof(head.FrameID) * 2, head.FrameID);
-    temp += QString().sprintf("协议版本号\t\t：%0*x\n", sizeof(head.ProtoclVersion) * 2, head.ProtoclVersion);
-    temp += QString().sprintf("命令码\t\t：%0*x\n", sizeof(head.CommodCode) * 2, head.CommodCode);
+    temp += FormatOutput("帧头", head.StartChar, true);
+    temp += FormatOutput("长度", head.FrameLength, true);
+    temp += FormatOutput("后续帧", head.HasMore) + QString().sprintf("(%s后续帧)\n", head.HasMore?"有":"没有");
+    temp += FormatOutput("报文ID", (uint32_t)head.FrameID, true);
+    temp += FormatOutput("协议版本号", head.ProtoclVersion, true);
+    temp += FormatOutput("命令码", head.CommodCode, true);
+
     temp += QString("表具编号\t\t：");
     for (int i = 0; i < 20; i++)
     {
-
         temp += QString().sprintf("%0*x", sizeof(head.MeterID[i]) * 2, head.MeterID[i]);
 
         if (setDefaultFlag == true)
@@ -169,7 +228,7 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     }
     temp += QString(")\n");
 
-    temp += QString().sprintf("传输方向\t\t：%0*x(表具%s平台)\n", sizeof(head.TransferDirection) * 2, head.TransferDirection, head.TransferDirection?"-->":"<--");
+    temp += FormatOutput("传输方向", head.TransferDirection) + QString().sprintf("(表具%s平台)\n", head.TransferDirection? "-->" : "<--");
     if (head.RequestOrRespond)
     {
         frameType = XINSHENG_PROTOCOL_RESPONSE;
@@ -179,10 +238,10 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
         frameType = XINSHENG_PROTOCOL_REQUEST;
     }
 
-    temp += QString().sprintf("请求响应标志位\t：%0*x(%s)\n", sizeof(head.RequestOrRespond) * 2, head.RequestOrRespond, head.RequestOrRespond?"响应":"请求");
-    temp += QString().sprintf("数据保留位\t\t：%0*x%0*x\n", sizeof(head.Reserve[0]) * 2, head.Reserve[0], sizeof(head.Reserve[1]) * 2, head.Reserve[1]);
-    temp += QString().sprintf("加密保护\t\t：%0*x%0*x\n", sizeof(head.Encryption[0]) * 2, head.Encryption[0], sizeof(head.Encryption[1]) * 2, head.Encryption[1]);
-    temp += QString().sprintf("数据域长度\t\t：%0*x(%d)\n", sizeof(head.DataAreaLength) * 2, head.DataAreaLength, head.DataAreaLength);
+    temp += FormatOutput("请求响应标志位", head.RequestOrRespond) + QString().sprintf("(%s)\n", head.RequestOrRespond ? "响应" : "请求");
+    temp += FormatOutput("数据保留位", head.Reserve[0], head.Reserve[1]);
+    temp += FormatOutput("加密保护", head.Encryption[0], head.Encryption[1]);
+    temp += FormatOutput("数据域长度", head.DataAreaLength) + QString().sprintf("(%d)\n", head.DataAreaLength);
 
     this->m_parsedHead = temp;
     return (XinShengParse::COMMAND_TYPE)head.CommodCode;
@@ -312,6 +371,8 @@ QString XinShengParse::CheckAbnormalBit(int32_t WarningStatus)
     return res;
 }
 
+
+
 void XinShengParse::ParseSingleReportBody()
 {
     QString temp = 0;
@@ -326,7 +387,7 @@ void XinShengParse::ParseSingleReportBody()
     // 将解密后的数据赋值给body，长度需要减去补码的长度
     memcpy((uint8_t *)&body.MeterType, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
 
-    temp += QString().sprintf("表具类型\t\t：%0*x", sizeof(body.MeterType) * 2, body.MeterType);
+    temp += FormatOutput("表具类型", body.MeterType);
     switch (body.MeterType)
     {
         case 1:
@@ -354,10 +415,8 @@ void XinShengParse::ParseSingleReportBody()
         break;
     }
 
-    temp += QString().sprintf("抄表时间\t\t：%0*x/%0*x/%0*x %0*x:%0*x:%0*x\n", sizeof(body.MeterReadYear) * 2, body.MeterReadYear, sizeof(body.MeterReadMonth) * 2, body.MeterReadMonth, sizeof(body.MeterReadDay) * 2, body.MeterReadDay,
-                     sizeof(body.MeterReadHour) * 2, body.MeterReadHour, sizeof(body.MeterReadMin) * 2, body.MeterReadMin, sizeof(body.MeterReadSec) * 2, body.MeterReadSec);
-
-    temp += QString().sprintf("上报类型\t\t：%0*x", sizeof(body.ReportType) * 2, body.ReportType);
+    temp += FormatOutput("抄表时间", body.MeterReadYear, body.MeterReadMonth, body.MeterReadDay, body.MeterReadHour, body.MeterReadMin, body.MeterReadSec);
+    temp += FormatOutput("上报类型", body.ReportType);
     switch(body.ReportType)
     {
         case 0:
@@ -377,7 +436,7 @@ void XinShengParse::ParseSingleReportBody()
         break;
     }
 
-    temp += QString().sprintf("阀门状态\t\t：%0*x", sizeof(body.ValveStaus) * 2, body.ValveStaus);
+    temp += FormatOutput("阀门状态", body.ValveStaus);
     switch(body.ValveStaus)
     {
         case 0:
@@ -409,31 +468,29 @@ void XinShengParse::ParseSingleReportBody()
         break;
     }
 
-    temp += QString().sprintf("工况总量\t\t：%0*x\n", sizeof(body.Total_Working_Condition) * 2, body.Total_Working_Condition);
-    temp += QString().sprintf("标况总量\t\t：%0*x\n", sizeof(body.Stand_Working_Condition) * 2, body.Stand_Working_Condition);
-    temp += QString().sprintf("标况瞬时流量\t\t：%0*x\n", sizeof(body.Standard_Instant_Flow) * 2, body.Standard_Instant_Flow);
-    temp += QString().sprintf("温度\t\t：%0*x\n", sizeof(body.Temperature) * 2, (uint16_t)body.Temperature);
-    temp += QString().sprintf("压力\t\t：%0*x\n", sizeof(body.Pressure) * 2, (uint16_t)body.Pressure);
-    temp += QString().sprintf("剩余金额\t\t：%0*x\n", sizeof(body.MoneySurplus) * 2, body.MoneySurplus);
-    temp += QString().sprintf("最新结算读数\t\t：%0*x\n", sizeof(body.Latest_Settle_Reading) * 2, body.Latest_Settle_Reading);
-    temp += QString().sprintf("最新结算时间\t\t：%0*x/%0*x/%0*x %0*x:%0*x:%0*x\n", sizeof(body.Latest_Settle_Timing[0]) * 2, body.Latest_Settle_Timing[0], sizeof(body.Latest_Settle_Timing[1]) * 2, body.Latest_Settle_Timing[1],
-                                                                                sizeof(body.Latest_Settle_Timing[2]) * 2, body.Latest_Settle_Timing[2], sizeof(body.Latest_Settle_Timing[3]) * 2, body.Latest_Settle_Timing[3],
-                                                                                sizeof(body.Latest_Settle_Timing[4]) * 2, body.Latest_Settle_Timing[4], sizeof(body.Latest_Settle_Timing[5]) * 2, body.Latest_Settle_Timing[5]);
-    temp += QString().sprintf("告警状态\t\t：%0*x(%s)\n", sizeof(body.WarmingStatus) * 2, body.WarmingStatus, CheckAbnormalBit(body.WarmingStatus).toUtf8().data());
-    temp += QString().sprintf("告警状态保留位\t：%0*x(%s)\n", sizeof(body.WarmingStatusReserveBit) * 2, body.WarmingStatusReserveBit, CheckAbnormalBit(body.WarmingStatusReserveBit).toUtf8().data());
-    temp += QString().sprintf("干电池电量\t\t：%0*x(%d.%dV)\n", sizeof(body.DryPower) * 2, body.DryPower, body.DryPower / 100, body.DryPower % 100);
-    temp += QString().sprintf("锂电池电量\t\t：%0*x(%d.%dV)\n", sizeof(body.LiPower) * 2, body.LiPower, body.LiPower / 100, body.LiPower % 100);
-    temp += QString().sprintf("信号质量\t\t：%0*x\n", sizeof(body.ModuleRSRP) * 2, (uint16_t)body.ModuleRSRP);
-    temp += QString().sprintf("信噪比\t\t：%0*x\n", sizeof(body.ModuleSNR) * 2, body.ModuleSNR);
-    temp += QString().sprintf("频点\t\t：%0*x\n", sizeof(body.ModuleEARFCN) * 2, body.ModuleEARFCN);
-    //temp += (QString("基站小区标识\t\t：%1").arg((body.ModuleEARFCN), sizeof(body.ModuleEARFCN) * 2, 16, QLatin1Char('0')));
-    temp += QString().sprintf("物理小区标识\t\t：%0*x\n", sizeof(body.ModulePhysicalCellId) * 2, body.ModulePhysicalCellId);
-    temp += QString().sprintf("覆盖等级\t\t：%0*x\n", sizeof(body.ModuleECL) * 2, body.ModuleECL);
-    temp += QString().sprintf("固件版本号\t\t：%0*x%0*x%0*x%0*x(V%c%c.%c%c)\n", sizeof(body.SoftWareVersion[0]) * 2, body.SoftWareVersion[0], sizeof(body.SoftWareVersion[1]) * 2, body.SoftWareVersion[1],
-                                                                              sizeof(body.SoftWareVersion[2]) * 2, body.SoftWareVersion[2], sizeof(body.SoftWareVersion[3]) * 2, body.SoftWareVersion[3],
-                                                                              body.SoftWareVersion[0], body.SoftWareVersion[1], body.SoftWareVersion[2], body.SoftWareVersion[3]);
-    temp += QString().sprintf("保留位\t\t：%0*x\n", sizeof(body.Reserve) * 2, body.Reserve);
+    temp += FormatOutput("工况总量", body.Total_Working_Condition, true);
+    temp += FormatOutput("标况总量", body.Stand_Working_Condition, true);
+    temp += FormatOutput("标况瞬时流量", body.Standard_Instant_Flow, true);
+    qDebug() << QString("标况总量").size();
+    qDebug() << QString("标况瞬时流量").size();
+    temp += FormatOutput("温度", (uint16_t)body.Temperature, true);
+    temp += FormatOutput("压力", (uint16_t)body.Pressure, true);
+    temp += FormatOutput("剩余金额", (uint32_t)body.MoneySurplus, true);
+    temp += FormatOutput("最新结算读数", body.Latest_Settle_Reading, true);
+    temp += FormatOutput("最新结算时间", body.Latest_Settle_Timing[0], body.Latest_Settle_Timing[1], body.Latest_Settle_Timing[2], body.Latest_Settle_Timing[3], body.Latest_Settle_Timing[4], body.Latest_Settle_Timing[5]);
+    temp += FormatOutput("告警状态", (uint32_t)body.WarmingStatus) + "(" + CheckAbnormalBit(body.WarmingStatus) + ")\n";
+    temp += FormatOutput("告警状态保留位", (uint32_t)body.WarmingStatusReserveBit) + "(" + CheckAbnormalBit(body.WarmingStatusReserveBit) + ")\n";
+    temp += FormatOutput("干电池电量", (uint16_t)body.DryPower) + QString().sprintf("(%d.%dV)\n",  body.DryPower / 100, body.DryPower % 100);
+    temp += FormatOutput("锂电池电量", (uint16_t)body.LiPower) + QString().sprintf("(%d.%dV)\n",  body.LiPower / 100, body.LiPower % 100);
+    temp += FormatOutput("信号质量", (uint16_t)body.ModuleRSRP, true);
+    temp += FormatOutput("信噪比",(uint16_t) body.ModuleSNR, true);
+    temp += FormatOutput("频点", (uint16_t)body.ModuleEARFCN, true);
+    temp += FormatOutput("物理小区标识", (uint16_t)body.ModulePhysicalCellId, true);
+    temp += FormatOutput("覆盖等级", body.ModuleECL, true);
+    temp += FormatOutput("固件版本号", body.SoftWareVersion[0], body.SoftWareVersion[1], body.SoftWareVersion[2], body.SoftWareVersion[3]);
+    temp += FormatOutput("保留位", body.Reserve, true);
 
+    //temp += (QString("基站小区标识\t\t：%1").arg((body.ModuleEARFCN), sizeof(body.ModuleEARFCN) * 2, 16, QLatin1Char('0')));
     this->m_parsedBody = temp;
 }
 
