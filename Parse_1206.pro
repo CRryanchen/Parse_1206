@@ -15,12 +15,15 @@ TEMPLATE = app
 SOURCES += main.cpp\
         widget.cpp \
     xinshengparse.cpp \
-    qaesencryption.cpp
+    qaesencryption.cpp \
+    fengxianparse.cpp
 
 HEADERS  += widget.h \
     xinsheng.h \
     xinshengparse.h \
-    qaesencryption.h
+    qaesencryption.h \
+    fengxian.h \
+    fengxianparse.h
 
 FORMS    += widget.ui
 
