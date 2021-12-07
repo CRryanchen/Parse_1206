@@ -40,31 +40,8 @@ static const quint16 crc16Table[] =
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-QString FormatOutput(const QString &str, const uint8_t &data, bool endline = false)
-{
-    if (str.size() >= 6)
-    {
-        return QString().sprintf("%s\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
-    }
-    else
-    {
-        return QString().sprintf("%s\t\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
-    }
-}
-
-QString FormatOutput(const QString &str, const uint16_t &data, bool endline = false)
-{
-    if (str.size() >= 6)
-    {
-        return QString().sprintf("%s\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
-    }
-    else
-    {
-        return QString().sprintf("%s\t\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
-    }
-}
-
-QString FormatOutput(const QString &str, const uint32_t &data, bool endline = false)
+template<typename T>
+QString FormatOutput(const QString &str, const T &data, bool endline = false)
 {
     if (str.size() >= 6)
     {
@@ -188,12 +165,12 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     XINSHENG_PROTOCOL_FRAME_HEADER head;
     memcpy((uint8_t *)&head.StartChar, (uint8_t *)this->m_frameHead.data(), this->m_frameHead.size());
 
-    temp += FormatOutput("帧头", head.StartChar, true);
-    temp += FormatOutput("长度", head.FrameLength, true);
-    temp += FormatOutput("后续帧", head.HasMore) + QString().sprintf("(%s后续帧)\n", head.HasMore?"有":"没有");
-    temp += FormatOutput("报文ID", (uint32_t)head.FrameID, true);
-    temp += FormatOutput("协议版本号", head.ProtoclVersion, true);
-    temp += FormatOutput("命令码", head.CommodCode, true);
+    temp += FormatOutput<uint8_t>("帧头", head.StartChar, true);
+    temp += FormatOutput<uint16_t>("长度", head.FrameLength, true);
+    temp += FormatOutput<uint8_t>("后续帧", head.HasMore) + QString().sprintf("(%s后续帧)\n", head.HasMore?"有":"没有");
+    temp += FormatOutput<uint32_t>("报文ID", (uint32_t)head.FrameID, true);
+    temp += FormatOutput<uint16_t>("协议版本号", head.ProtoclVersion, true);
+    temp += FormatOutput<uint16_t>("命令码", head.CommodCode, true);
 
     temp += QString("表具编号\t\t：");
     for (int i = 0; i < 20; i++)
@@ -228,7 +205,7 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     }
     temp += QString(")\n");
 
-    temp += FormatOutput("传输方向", head.TransferDirection) + QString().sprintf("(表具%s平台)\n", head.TransferDirection? "-->" : "<--");
+    temp += FormatOutput<uint8_t>("传输方向", head.TransferDirection) + QString().sprintf("(表具%s平台)\n", head.TransferDirection? "-->" : "<--");
     if (head.RequestOrRespond)
     {
         frameType = XINSHENG_PROTOCOL_RESPONSE;
@@ -238,10 +215,10 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
         frameType = XINSHENG_PROTOCOL_REQUEST;
     }
 
-    temp += FormatOutput("请求响应标志位", head.RequestOrRespond) + QString().sprintf("(%s)\n", head.RequestOrRespond ? "响应" : "请求");
+    temp += FormatOutput<uint8_t>("请求响应标志位", head.RequestOrRespond) + QString().sprintf("(%s)\n", head.RequestOrRespond ? "响应" : "请求");
     temp += FormatOutput("数据保留位", head.Reserve[0], head.Reserve[1]);
     temp += FormatOutput("加密保护", head.Encryption[0], head.Encryption[1]);
-    temp += FormatOutput("数据域长度", head.DataAreaLength) + QString().sprintf("(%d)\n", head.DataAreaLength);
+    temp += FormatOutput<uint16_t>("数据域长度", head.DataAreaLength) + QString().sprintf("(%d)\n", head.DataAreaLength);
 
     this->m_parsedHead = temp;
     return (XinShengParse::COMMAND_TYPE)head.CommodCode;
@@ -387,7 +364,7 @@ void XinShengParse::ParseSingleReportBody()
     // 将解密后的数据赋值给body，长度需要减去补码的长度
     memcpy((uint8_t *)&body.MeterType, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
 
-    temp += FormatOutput("表具类型", body.MeterType);
+    temp += FormatOutput<uint16_t>("表具类型", body.MeterType);
     switch (body.MeterType)
     {
         case 1:
@@ -416,7 +393,7 @@ void XinShengParse::ParseSingleReportBody()
     }
 
     temp += FormatOutput("抄表时间", body.MeterReadYear, body.MeterReadMonth, body.MeterReadDay, body.MeterReadHour, body.MeterReadMin, body.MeterReadSec);
-    temp += FormatOutput("上报类型", body.ReportType);
+    temp += FormatOutput<uint8_t>("上报类型", body.ReportType);
     switch(body.ReportType)
     {
         case 0:
@@ -436,7 +413,7 @@ void XinShengParse::ParseSingleReportBody()
         break;
     }
 
-    temp += FormatOutput("阀门状态", body.ValveStaus);
+    temp += FormatOutput<uint8_t>("阀门状态", body.ValveStaus);
     switch(body.ValveStaus)
     {
         case 0:
@@ -468,27 +445,27 @@ void XinShengParse::ParseSingleReportBody()
         break;
     }
 
-    temp += FormatOutput("工况总量", body.Total_Working_Condition, true);
-    temp += FormatOutput("标况总量", body.Stand_Working_Condition, true);
-    temp += FormatOutput("标况瞬时流量", body.Standard_Instant_Flow, true);
+    temp += FormatOutput<uint32_t>("工况总量", body.Total_Working_Condition, true);
+    temp += FormatOutput<uint32_t>("标况总量", body.Stand_Working_Condition, true);
+    temp += FormatOutput<uint32_t>("标况瞬时流量", body.Standard_Instant_Flow, true);
     qDebug() << QString("标况总量").size();
     qDebug() << QString("标况瞬时流量").size();
-    temp += FormatOutput("温度", (uint16_t)body.Temperature, true);
-    temp += FormatOutput("压力", (uint16_t)body.Pressure, true);
-    temp += FormatOutput("剩余金额", (uint32_t)body.MoneySurplus, true);
-    temp += FormatOutput("最新结算读数", body.Latest_Settle_Reading, true);
+    temp += FormatOutput<uint16_t>("温度", (uint16_t)body.Temperature, true);
+    temp += FormatOutput<uint16_t>("压力", (uint16_t)body.Pressure, true);
+    temp += FormatOutput<uint32_t>("剩余金额", (uint32_t)body.MoneySurplus, true);
+    temp += FormatOutput<uint32_t>("最新结算读数", body.Latest_Settle_Reading, true);
     temp += FormatOutput("最新结算时间", body.Latest_Settle_Timing[0], body.Latest_Settle_Timing[1], body.Latest_Settle_Timing[2], body.Latest_Settle_Timing[3], body.Latest_Settle_Timing[4], body.Latest_Settle_Timing[5]);
-    temp += FormatOutput("告警状态", (uint32_t)body.WarmingStatus) + "(" + CheckAbnormalBit(body.WarmingStatus) + ")\n";
-    temp += FormatOutput("告警状态保留位", (uint32_t)body.WarmingStatusReserveBit) + "(" + CheckAbnormalBit(body.WarmingStatusReserveBit) + ")\n";
-    temp += FormatOutput("干电池电量", (uint16_t)body.DryPower) + QString().sprintf("(%d.%dV)\n",  body.DryPower / 100, body.DryPower % 100);
-    temp += FormatOutput("锂电池电量", (uint16_t)body.LiPower) + QString().sprintf("(%d.%dV)\n",  body.LiPower / 100, body.LiPower % 100);
-    temp += FormatOutput("信号质量", (uint16_t)body.ModuleRSRP, true);
-    temp += FormatOutput("信噪比",(uint16_t) body.ModuleSNR, true);
-    temp += FormatOutput("频点", (uint16_t)body.ModuleEARFCN, true);
-    temp += FormatOutput("物理小区标识", (uint16_t)body.ModulePhysicalCellId, true);
-    temp += FormatOutput("覆盖等级", body.ModuleECL, true);
+    temp += FormatOutput<uint32_t>("告警状态", (uint32_t)body.WarmingStatus) + "(" + CheckAbnormalBit(body.WarmingStatus) + ")\n";
+    temp += FormatOutput<uint32_t>("告警状态保留位", (uint32_t)body.WarmingStatusReserveBit) + "(" + CheckAbnormalBit(body.WarmingStatusReserveBit) + ")\n";
+    temp += FormatOutput<uint16_t>("干电池电量", (uint16_t)body.DryPower) + QString().sprintf("(%d.%dV)\n",  body.DryPower / 100, body.DryPower % 100);
+    temp += FormatOutput<uint16_t>("锂电池电量", (uint16_t)body.LiPower) + QString().sprintf("(%d.%dV)\n",  body.LiPower / 100, body.LiPower % 100);
+    temp += FormatOutput<uint16_t>("信号质量", (uint16_t)body.ModuleRSRP, true);
+    temp += FormatOutput<uint16_t>("信噪比",(uint16_t) body.ModuleSNR, true);
+    temp += FormatOutput<uint16_t>("频点", (uint16_t)body.ModuleEARFCN, true);
+    temp += FormatOutput<uint16_t>("物理小区标识", (uint16_t)body.ModulePhysicalCellId, true);
+    temp += FormatOutput<uint8_t>("覆盖等级", body.ModuleECL, true);
     temp += FormatOutput("固件版本号", body.SoftWareVersion[0], body.SoftWareVersion[1], body.SoftWareVersion[2], body.SoftWareVersion[3]);
-    temp += FormatOutput("保留位", body.Reserve, true);
+    temp += FormatOutput<uint16_t>("保留位", body.Reserve, true);
 
     //temp += (QString("基站小区标识\t\t：%1").arg((body.ModuleEARFCN), sizeof(body.ModuleEARFCN) * 2, 16, QLatin1Char('0')));
     this->m_parsedBody = temp;
