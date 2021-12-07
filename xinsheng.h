@@ -38,7 +38,8 @@ XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA,
 XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA,
 XINSHENG_PROTOCOL_SET_KEY_RSP_DATA,
 XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA,
-XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA;//4字节
+XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA,
+XINSHENG_PROTOCOL_GENERIC_RSP_DATA;             //4字节
 
 
 /*----------------单条数据上报-----------------*/
@@ -114,6 +115,47 @@ typedef struct{
     uint8_t												complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_RSP_DATA)];
     XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
 }XINSHENG_PROTOCOL_SET_KEY_RSP_FRAME;//修改密钥响应报文
+
+/*---------------远程阀门控制-----------------*/
+typedef struct{
+    uint16_t     valveCommand;				//开关阀命令
+}XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA; //远程阀控数据域(2字节)
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                  head;
+    XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA		body;
+    uint8_t											complement[PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                    tail;
+}XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA_FRAME; // 远程阀控报文
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA		body;
+    uint8_t                                             complement[PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA_RSP_FRAME; // 远程阀控响应报文
+
+/*--------------设置总购和余额------------*/
+typedef struct{
+    uint32_t	TotoalMoney;	//充值总购金额
+    int32_t		LeftMoney;		//剩余金额
+    uint32_t	CurrentPrice;	//当前单价
+    uint8_t		reserve[2];
+}XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA;		//修改总购余额数据域(14字节)
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA		body;
+    uint8_t                                             complement[PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA_FRAME;  //修改总购余额报文
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA	body;
+    uint8_t                                             complement[PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA_RSP_FRAME;  //修改总购余额响应报文
 
 
 #endif // XINSHENG_H

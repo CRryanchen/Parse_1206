@@ -173,12 +173,45 @@ void XinShengParse::StartParse()
                 qDebug() << "This is 7082 from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_KEY_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_DATA));
 //                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_SET_KEY_DATA));
-                this->ParseSetKey();
+                this->ParseSetKeyBody();
             }
             else
             {
                 qDebug() << "This is 7082 rsp from BD";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_KEY_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_RSP_DATA));
+                this->ParseSetKeyRspBody();
             }
+        break;
+
+        case XINSHENG_PROTOCOL_REMORT_VALVE_CONTROL:
+//        if (frameType == XINSHENG_PROTOCOL_REQUEST) 7024平台下发时也是表示响应，不能区分，所以我使用方向来区分
+        if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
+        {
+            qDebug() << "This is 7024 from PT";
+            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
+            this->ParseSetRemoteValveBody();
+        }
+        else
+        {
+            qDebug() << "This is 7024 rsp from BD";
+            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA));
+            this->ParseSetRemoteValveRspBody();
+        }
+        break;
+
+        case XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE:
+        if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
+        {
+            qDebug() << "This is 7025 from PT";
+            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA));
+            this->ParseSetTotalBalanceBody();
+        }
+        else
+        {
+            qDebug() << "This is 7025 rsp from BD";
+            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA));
+            this->ParseSetTotalBalanceRspBody();
+        }
         break;
 
         default:
@@ -530,7 +563,26 @@ void XinShengParse::ParseSingleReportRspBody()
     this->m_parsedBody = temp;
 }
 
-void XinShengParse::ParseSetKey()
+void XinShengParse::GenericRsp()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_GENERIC_RSP_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    // 将解密后的数据赋值给body，长度需要减去补码的长度
+    memcpy((uint8_t *)&body.RespondCode, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_GENERIC_RSP_DATA));
+
+    temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
+    temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
+
+    this->m_parsedBody = temp;
+}
+
+void XinShengParse::ParseSetKeyBody()
 {
     QString temp = 0;
     QString key = 0;
@@ -556,6 +608,63 @@ void XinShengParse::ParseSetKey()
 
     // 解析数据赋值给m_parsedBody
     this->m_parsedBody = temp;
+}
+
+
+void XinShengParse::ParseSetKeyRspBody()
+{
+    this->GenericRsp();
+}
+
+void XinShengParse::ParseSetRemoteValveBody()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    memcpy((uint8_t *)&body.valveCommand, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
+
+    temp += FormatOutput<uint16_t>("开关阀命令", body.valveCommand, true);
+
+    this->m_parsedBody = temp;
+}
+
+void XinShengParse::ParseSetRemoteValveRspBody()
+{
+    this->GenericRsp();
+}
+
+void XinShengParse::ParseSetTotalBalanceBody()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    for (int i = 0; i < decodedText.size(); i++)
+    {
+        qDebug() << hex << pArray[i];
+    }
+    memcpy((uint8_t *)&body.TotoalMoney, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA));
+
+    temp += FormatOutput<uint32_t>("充值总购余额", body.TotoalMoney, true);
+    temp += FormatOutput<uint32_t>("剩余金额", body.LeftMoney, true);
+    temp += FormatOutput<uint32_t>("当前单价", body.CurrentPrice, true);
+    temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
+
+    this->m_parsedBody = temp;
+}
+
+void XinShengParse::ParseSetTotalBalanceRspBody()
+{
+    this->GenericRsp();
 }
 
 uint16_t XinShengParse::crc16ForModbus(const QByteArray &data)

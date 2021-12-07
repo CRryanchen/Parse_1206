@@ -16,11 +16,15 @@ class XinShengParse : public QObject
     QByteArray m_defaultKey;        // 获取初始密钥
     QByteArray m_latestKey;         // 7082解析出来的密钥
     bool       m_useDefaultKeyFlag; // 使用初始密钥标志位
+
+    void GenericRsp();
 public:
     enum COMMAND_TYPE
     {
         XINSHENG_PROTOCOL_REPORT_SINGLE           = 0x7021,  //单条上报数据
         XINSHENG_PROTOCOL_SET_KEY                 = 0x7082,  //设置密钥
+        XINSHENG_PROTOCOL_REMORT_VALVE_CONTROL    = 0x7024,  //远程阀控
+        XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE = 0x7025,  //修改总购余额
     };
 
     enum FRAME_TYPE
@@ -45,7 +49,13 @@ public:
     QString CheckAbnormalBit(int32_t WarningStatus);
     void ParseSingleReportBody(void);
     void ParseSingleReportRspBody(void);
-    void ParseSetKey(void);
+    void ParseSetKeyBody(void);
+    void ParseSetKeyRspBody(void);
+    void ParseSetRemoteValveBody(void);
+    void ParseSetRemoteValveRspBody(void);
+    void ParseSetTotalBalanceBody(void);
+    void ParseSetTotalBalanceRspBody(void);
+
     uint16_t crc16ForModbus(const QByteArray &data);
     QString GetLatestKey(void);
     void SetLatestKey(QByteArray inputKey);
