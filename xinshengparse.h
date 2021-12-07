@@ -13,11 +13,14 @@ class XinShengParse : public QObject
     QByteArray m_frameHead;         // 获取报文头数据
     QByteArray m_frameBody;         // 获取报文体数据
     QByteArray m_frameTail;         // 获取报文尾数据
-    QByteArray m_key;               // 获取初始密钥
+    QByteArray m_defaultKey;        // 获取初始密钥
+    QByteArray m_latestKey;         // 7082解析出来的密钥
+    bool       m_useDefaultKeyFlag; // 使用初始密钥标志位
 public:
     enum COMMAND_TYPE
     {
         XINSHENG_PROTOCOL_REPORT_SINGLE           = 0x7021,  //单条上报数据
+        XINSHENG_PROTOCOL_SET_KEY                 = 0x7082,  //设置密钥
     };
 
     enum FRAME_TYPE
@@ -37,11 +40,17 @@ public:
 
 public:
     XinShengParse(QString &inputData, QObject *parent = 0);
+    void StartParse(void);
     XinShengParse::COMMAND_TYPE ParseHead(XinShengParse::FRAME_TYPE &frameType, XinShengParse::TRANS_DIRECTION &transDirection);
     QString CheckAbnormalBit(int32_t WarningStatus);
     void ParseSingleReportBody(void);
     void ParseSingleReportRspBody(void);
+    void ParseSetKey(void);
     uint16_t crc16ForModbus(const QByteArray &data);
+    QString GetLatestKey(void);
+    void SetLatestKey(QByteArray inputKey);
+    QByteArray GetParseKey(void);
+    void setUseDefaultKey(bool res);
 
 signals:
 

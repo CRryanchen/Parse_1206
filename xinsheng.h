@@ -29,6 +29,18 @@ typedef struct{
     uint8_t      EndChar;                   //数据与长度
 }XINSHENG_PROTOCOL_FRAME_TAIL;
 
+/*----------------通用响应数据域-----------------*/
+typedef struct{
+    int16_t     RespondCode;
+    uint8_t     reserve[2];
+}XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA,
+XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA,
+XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA,
+XINSHENG_PROTOCOL_SET_KEY_RSP_DATA,
+XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA,
+XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA;//4字节
+
+
 /*----------------单条数据上报-----------------*/
 //表端->平台
 typedef struct{
@@ -82,6 +94,26 @@ typedef struct{
     uint8_t 									complement[PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA)];
     XINSHENG_PROTOCOL_FRAME_TAIL                tail;
 }XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_FRAME; //单条数据上报响应报文
+
+/*------------------密钥设置-------------------*/
+typedef struct{
+    uint8_t securitykey[16];
+    uint8_t reserve[4];
+}XINSHENG_PROTOCOL_SET_KEY_DATA;  //修改密钥数据域(20字节)
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_SET_KEY_DATA                      body;
+    uint8_t												complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_SET_KEY_FRAME;//修改密钥报文
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_SET_KEY_RSP_DATA                  body;
+    uint8_t												complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_RSP_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_SET_KEY_RSP_FRAME;//修改密钥响应报文
 
 
 #endif // XINSHENG_H

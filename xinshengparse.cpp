@@ -3,6 +3,7 @@
 
 #define XINSHENG_PROTOCOL_FRAME_STARTCHAR           0X68        // 新圣协议起始符
 #define XINSHENG_PROTOCOL_FRAME_ENDCHAR             0X16        // 新圣协议结束符
+#define XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(x, y)      (sizeof(x), (sizeof(y) + PADDING_LENGTH(y)))
 
 static const quint16 crc16Table[] =
 {
@@ -82,6 +83,12 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
     this->m_frameHead = this->m_frameData.left(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER));
     this->m_frameTail = this->m_frameData.right(sizeof(XINSHENG_PROTOCOL_FRAME_TAIL));
 
+    this->m_useDefaultKeyFlag = true;   // 使用初始密钥
+
+}
+
+void XinShengParse::StartParse()
+{
     // 校验协议头
     XINSHENG_PROTOCOL_FRAME_HEADER head;
     memcpy((uint8_t *)&head.StartChar, (uint8_t *)this->m_frameHead.data(), this->m_frameHead.size());
@@ -147,15 +154,35 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
             {
                 qDebug() << "This is 7021 to PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
+//                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
                 this->ParseSingleReportBody();
             }
             else
             {
                 qDebug() << "This is 7021 rsp from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
+//                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
                 this->ParseSingleReportRspBody();
             }
 
+        break;
+
+        case XinShengParse::XINSHENG_PROTOCOL_SET_KEY:
+            if (frameType == XINSHENG_PROTOCOL_REQUEST)
+            {
+                qDebug() << "This is 7082 from PT";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_KEY_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_DATA));
+//                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_SET_KEY_DATA));
+                this->ParseSetKey();
+            }
+            else
+            {
+                qDebug() << "This is 7082 rsp from BD";
+            }
+        break;
+
+        default:
+            qDebug() << "未识别的命令码";
         break;
     }
 }
@@ -163,14 +190,10 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
 XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &frameType, XinShengParse::TRANS_DIRECTION &transDirection)
 {
     QString temp = 0;
-    bool setDefaultFlag = false;
 
-    if (this->m_key == NULL)
-    {
-        this->m_key = "QW";
-        setDefaultFlag = true;
-        qDebug() << "设置初始密钥";
-    }
+    this->m_defaultKey = "QW";
+    qDebug() << "设置初始密钥";
+
 
     XINSHENG_PROTOCOL_FRAME_HEADER head;
     memcpy((uint8_t *)&head.StartChar, (uint8_t *)this->m_frameHead.data(), this->m_frameHead.size());
@@ -187,12 +210,9 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     {
         temp += QString().sprintf("%0*x", sizeof(head.MeterID[i]) * 2, head.MeterID[i]);
 
-        if (setDefaultFlag == true)
+        if (i > 5)
         {
-            if (i > 5)
-            {
-                this->m_key += head.MeterID[i] - '0';
-            }
+            this->m_defaultKey += head.MeterID[i] - '0';
         }
     }
 
@@ -374,8 +394,9 @@ void XinShengParse::ParseSingleReportBody()
     XINSHENG_PROTOCOL_REPORT_SINGLE_DATA body;
     QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
 
-    qDebug() << this->m_key;
-    QByteArray decodedText = encryption.decode(this->m_frameBody, this->m_key);
+    qDebug() << this->m_defaultKey;
+    qDebug() << this->GetParseKey();
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
     uint8_t *pArray = NULL;
 
     pArray = (uint8_t *)decodedText.data();
@@ -495,8 +516,8 @@ void XinShengParse::ParseSingleReportRspBody()
     XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA body;
     QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
 
-    qDebug() << this->m_key;
-    QByteArray decodedText = encryption.decode(this->m_frameBody, this->m_key);
+    qDebug() << this->m_defaultKey;
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
     uint8_t *pArray = NULL;
 
     pArray = (uint8_t *)decodedText.data();
@@ -506,7 +527,34 @@ void XinShengParse::ParseSingleReportRspBody()
     temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
     temp += FormatOutput("服务器时间", body.Servertime[0], body.Servertime[1], body.Servertime[2], body.Servertime[3], body.Servertime[4], body.Servertime[5]);
     temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
+    this->m_parsedBody = temp;
+}
 
+void XinShengParse::ParseSetKey()
+{
+    QString temp = 0;
+    QString key = 0;
+    XINSHENG_PROTOCOL_SET_KEY_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    qDebug() << this->GetParseKey();
+    qDebug() << this->m_defaultKey;
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    memcpy((uint8_t *)&body.securitykey[0], pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_DATA));
+
+    temp += QString("密钥\t\t：");
+    for (int i = 0; i < 16; i++)
+    {
+        temp += QString("%1").arg(body.securitykey[i], sizeof(body.securitykey[i]) * 2, 16, QLatin1Char('0'));
+        key += QString().sprintf("%02x", body.securitykey[i]);
+    }
+
+    this->m_latestKey = QByteArray::fromHex(key.toLocal8Bit());            // 获取平台下发的最新密钥
+
+    // 解析数据赋值给m_parsedBody
     this->m_parsedBody = temp;
 }
 
@@ -522,4 +570,44 @@ uint16_t XinShengParse::crc16ForModbus(const QByteArray &data)
         crc16 ^= crc16Table[ buf ];
     }
     return  crc16;
+}
+
+QString XinShengParse::GetLatestKey()
+{
+    return this->m_latestKey.toHex();
+}
+
+void XinShengParse::SetLatestKey(QByteArray inputKey)
+{
+    this->m_latestKey = inputKey;
+}
+
+QByteArray XinShengParse::GetParseKey()
+{
+    if (this->m_useDefaultKeyFlag)
+    {
+        qDebug() << "使用初始密钥";
+        return this->m_defaultKey;
+    }
+    else
+    {
+        if (this->m_latestKey.isEmpty())
+        {
+
+            qDebug() << "应该使用平台下发密钥，可是为空，所以使用初始密钥";
+            return this->m_defaultKey;
+        }
+        else
+        {
+            qDebug() << "使用平台下发的密钥";
+            return this->m_latestKey;
+        }
+    }
+}
+
+void XinShengParse::setUseDefaultKey(bool res)
+{
+
+    this->m_useDefaultKeyFlag = res;
+
 }
