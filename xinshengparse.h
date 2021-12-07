@@ -26,12 +26,18 @@ public:
         XINSHENG_PROTOCOL_RESPONSE,                          // 响应报文
     };
 
+    enum TRANS_DIRECTION
+    {
+        XINSHENG_PROTOCOL_TRANS_DIRECTION_B2P,               // 传输方向为表->平台
+        XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B,               // 传输方向为平台->表端
+    };
+
     QString m_parsedHead;           // 解析后的报文头数据
     QString m_parsedBody;           // 解析后的报文体数据
 
 public:
     XinShengParse(QString &inputData, QObject *parent = 0);
-    XinShengParse::COMMAND_TYPE ParseHead(XinShengParse::FRAME_TYPE &frameType);
+    XinShengParse::COMMAND_TYPE ParseHead(XinShengParse::FRAME_TYPE &frameType, XinShengParse::TRANS_DIRECTION &transDirection);
     QString CheckAbnormalBit(int32_t WarningStatus);
     void ParseSingleReportBody(void);
     void ParseSingleReportRspBody(void);

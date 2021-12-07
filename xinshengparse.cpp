@@ -97,16 +97,26 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
         qDebug() << "起始符错误!";
     }
 
+    FRAME_TYPE frameType;
+    TRANS_DIRECTION transDirection;
+    XinShengParse::COMMAND_TYPE commandType = this->ParseHead(frameType, transDirection);
 
     // 校验协议尾
     XINSHENG_PROTOCOL_FRAME_TAIL tail;
     memcpy((uint8_t *)&tail.CRCCheck, (uint8_t *)this->m_frameTail.data(), this->m_frameTail.size());
-    uint16_t crc = (tail.CRCCheck & 0xff) << 8;
-    crc |= tail.CRCCheck >> 8;
+    uint16_t crc = tail.CRCCheck;
+    if (transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_B2P)
+    {
+        crc = (tail.CRCCheck & 0xff) << 8;
+        crc |= tail.CRCCheck >> 8;
+    }
+
 
     // 需要校验的数据
     QByteArray needCRCData = this->m_frameData;
     needCRCData.chop(sizeof(XINSHENG_PROTOCOL_FRAME_TAIL));
+    qDebug() << crc;
+    qDebug() << crc16ForModbus(needCRCData);
     if (crc == crc16ForModbus(needCRCData))
     {
         // 校验码正确
@@ -129,8 +139,8 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
         qDebug() << "结束符错误!";
     }
 
-    FRAME_TYPE frameType;
-    switch(this->ParseHead(frameType))
+
+    switch(commandType)
     {
         case XinShengParse::XINSHENG_PROTOCOL_REPORT_SINGLE:
             if (frameType == XINSHENG_PROTOCOL_REQUEST)
@@ -143,14 +153,14 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
             {
                 qDebug() << "This is 7021 rsp from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
-//                this->ParseSingleReportRspBody();
+                this->ParseSingleReportRspBody();
             }
 
         break;
     }
 }
 
-XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &frameType)
+XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &frameType, XinShengParse::TRANS_DIRECTION &transDirection)
 {
     QString temp = 0;
     bool setDefaultFlag = false;
@@ -206,6 +216,16 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     temp += QString(")\n");
 
     temp += FormatOutput<uint8_t>("传输方向", head.TransferDirection) + QString().sprintf("(表具%s平台)\n", head.TransferDirection? "-->" : "<--");
+    if (head.TransferDirection)
+    {
+        transDirection = XINSHENG_PROTOCOL_TRANS_DIRECTION_B2P;
+    }
+    else
+    {
+        transDirection = XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B;
+    }
+
+    temp += FormatOutput<uint8_t>("请求响应标志位", head.RequestOrRespond) + QString().sprintf("(%s)\n", head.RequestOrRespond ? "响应" : "请求");
     if (head.RequestOrRespond)
     {
         frameType = XINSHENG_PROTOCOL_RESPONSE;
@@ -214,8 +234,6 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
     {
         frameType = XINSHENG_PROTOCOL_REQUEST;
     }
-
-    temp += FormatOutput<uint8_t>("请求响应标志位", head.RequestOrRespond) + QString().sprintf("(%s)\n", head.RequestOrRespond ? "响应" : "请求");
     temp += FormatOutput("数据保留位", head.Reserve[0], head.Reserve[1]);
     temp += FormatOutput("加密保护", head.Encryption[0], head.Encryption[1]);
     temp += FormatOutput<uint16_t>("数据域长度", head.DataAreaLength) + QString().sprintf("(%d)\n", head.DataAreaLength);
@@ -468,6 +486,27 @@ void XinShengParse::ParseSingleReportBody()
     temp += FormatOutput<uint16_t>("保留位", body.Reserve, true);
 
     //temp += (QString("基站小区标识\t\t：%1").arg((body.ModuleEARFCN), sizeof(body.ModuleEARFCN) * 2, 16, QLatin1Char('0')));
+    this->m_parsedBody = temp;
+}
+
+void XinShengParse::ParseSingleReportRspBody()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    qDebug() << this->m_key;
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->m_key);
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    // 将解密后的数据赋值给body，长度需要减去补码的长度
+    memcpy((uint8_t *)&body.RespondCode, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
+
+    temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
+    temp += FormatOutput("服务器时间", body.Servertime[0], body.Servertime[1], body.Servertime[2], body.Servertime[3], body.Servertime[4], body.Servertime[5]);
+    temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
+
     this->m_parsedBody = temp;
 }
 
