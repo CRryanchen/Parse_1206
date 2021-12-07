@@ -25,6 +25,9 @@ public:
         XINSHENG_PROTOCOL_SET_KEY                 = 0x7082,  //设置密钥
         XINSHENG_PROTOCOL_REMORT_VALVE_CONTROL    = 0x7024,  //远程阀控
         XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE = 0x7025,  //修改总购余额
+        XINSHENG_PROTOCOL_SET_COMMUICATION_PARAM  = 0x7011,  //设置通讯参数
+        XINSHENG_PROTOCOL_SET_REPORT_PERIOD       = 0x7012,  //设置上报周期
+        XINSHENG_PROTOCOL_SET_WARNING_THRESHOLD   = 0x7014,  //设置事件阈值
     };
 
     enum FRAME_TYPE
@@ -55,6 +58,12 @@ public:
     void ParseSetRemoteValveRspBody(void);
     void ParseSetTotalBalanceBody(void);
     void ParseSetTotalBalanceRspBody(void);
+    void ParseSetCommParamBody(void);
+    void ParseSetCommParamRspBody(void);
+    void ParseSetReportCycleBody(void);
+    void ParseSetReportCycleRspBody(void);
+    void ParseSetWarningThresholdBody(void);
+    void ParseSetWarningThresholdRspBody(void);
 
     uint16_t crc16ForModbus(const QByteArray &data);
     QString GetLatestKey(void);

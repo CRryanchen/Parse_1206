@@ -84,7 +84,6 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
     this->m_frameTail = this->m_frameData.right(sizeof(XINSHENG_PROTOCOL_FRAME_TAIL));
 
     this->m_useDefaultKeyFlag = true;   // 使用初始密钥
-
 }
 
 void XinShengParse::StartParse()
@@ -185,34 +184,80 @@ void XinShengParse::StartParse()
 
         case XINSHENG_PROTOCOL_REMORT_VALVE_CONTROL:
 //        if (frameType == XINSHENG_PROTOCOL_REQUEST) 7024平台下发时也是表示响应，不能区分，所以我使用方向来区分
-        if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
-        {
-            qDebug() << "This is 7024 from PT";
-            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
-            this->ParseSetRemoteValveBody();
-        }
-        else
-        {
-            qDebug() << "This is 7024 rsp from BD";
-            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA));
-            this->ParseSetRemoteValveRspBody();
-        }
+            if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
+            {
+                qDebug() << "This is 7024 from PT";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
+                this->ParseSetRemoteValveBody();
+            }
+            else
+            {
+                qDebug() << "This is 7024 rsp from BD";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA));
+                this->ParseSetRemoteValveRspBody();
+            }
         break;
 
         case XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE:
+            if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
+            {
+                qDebug() << "This is 7025 from PT";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA));
+                this->ParseSetTotalBalanceBody();
+            }
+            else
+            {
+                qDebug() << "This is 7025 rsp from BD";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA));
+                this->ParseSetTotalBalanceRspBody();
+            }
+        break;
+
+        case XINSHENG_PROTOCOL_SET_COMMUICATION_PARAM:
+            if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
+            {
+                qDebug() << "This is 7011 from PT";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA));
+                this->ParseSetCommParamBody();
+            }
+            else
+            {
+                qDebug() << "This is 7011 rsp from BD";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA));
+                this->ParseSetCommParamRspBody();
+            }
+        break;
+
+
+        case XINSHENG_PROTOCOL_SET_REPORT_PERIOD:
+            if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
+            {
+                qDebug() << "This is 7012 from PT";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA));
+                this->ParseSetWarningThresholdBody();
+            }
+            else
+            {
+                qDebug() << "This is 7012 rsp from BD";
+                this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA));
+                this->ParseSetWarningThresholdRspBody();
+            }
+        break;
+
+        case XINSHENG_PROTOCOL_SET_WARNING_THRESHOLD:
         if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
         {
-            qDebug() << "This is 7025 from PT";
-            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA));
-            this->ParseSetTotalBalanceBody();
+            qDebug() << "This is 7014 from PT";
+            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA));
+            this->ParseSetReportCycleBody();
         }
         else
         {
-            qDebug() << "This is 7025 rsp from BD";
-            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA));
-            this->ParseSetTotalBalanceRspBody();
+            qDebug() << "This is 7014 rsp from BD";
+            this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA));
+            this->ParseSetReportCycleRspBody();
         }
-        break;
+    break;
 
         default:
             qDebug() << "未识别的命令码";
@@ -663,6 +708,106 @@ void XinShengParse::ParseSetTotalBalanceBody()
 }
 
 void XinShengParse::ParseSetTotalBalanceRspBody()
+{
+    this->GenericRsp();
+}
+
+void XinShengParse::ParseSetCommParamBody()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    for (int i = 0; i < decodedText.size(); i++)
+    {
+        qDebug() << hex << pArray[i];
+    }
+    memcpy((uint8_t *)&body.IPAddress[0][0], pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA));
+
+    this->m_parsedBody = temp;
+}
+
+void XinShengParse::ParseSetCommParamRspBody()
+{
+    this->GenericRsp();
+}
+
+void XinShengParse::ParseSetReportCycleBody()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    for (int i = 0; i < decodedText.size(); i++)
+    {
+        qDebug() << hex << pArray[i];
+    }
+    memcpy((uint8_t *)&body.ReportyType, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA));
+
+    temp += FormatOutput<uint8_t>("上报周期类型", body.ReportyType, true);
+    temp += FormatOutput("上报时间", body.ReportTime[0], body.ReportTime[1], body.ReportTime[2], body.ReportTime[3], body.ReportTime[4], body.ReportTime[5]);
+    temp += FormatOutput<uint16_t>("上报周期", body.CycleValue);
+    temp += FormatOutput<uint16_t>("数据采集间隔", body.DataInvert);
+
+//    temp += (QString("上报周期类型\t\t：%1\n").arg((body.ReportyType), sizeof(body.ReportyType) * 2, 16, QLatin1Char('0')));
+//    temp += (QString("上报时间\t\t：%1:%2:%3\n").arg((body.ReportTime[0]), sizeof(body.ReportTime[0]) * 2, 16, QLatin1Char('0'))
+//                                              .arg((body.ReportTime[1]), sizeof(body.ReportTime[1]) * 2, 16, QLatin1Char('0'))
+//                                              .arg((body.ReportTime[2]), sizeof(body.ReportTime[2]) * 2, 16, QLatin1Char('0'))
+//                                                );
+//    temp += (QString("上报周期\t\t：%1\n").arg((body.CycleValue), sizeof(body.CycleValue) * 2, 16, QLatin1Char('0')));
+//    temp += (QString("数据采集间隔\t\t：%1\n").arg((body.DataInvert), sizeof(body.DataInvert) * 2, 16, QLatin1Char('0')));
+}
+
+void XinShengParse::ParseSetReportCycleRspBody()
+{
+    this->GenericRsp();
+}
+
+void XinShengParse::ParseSetWarningThresholdBody()
+{
+    QString temp = 0;
+    XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA body;
+    QAESEncryption encryption(QAESEncryption::AES_128, QAESEncryption::ECB);
+
+    QByteArray decodedText = encryption.decode(this->m_frameBody, this->GetParseKey());
+    uint8_t *pArray = NULL;
+
+    pArray = (uint8_t *)decodedText.data();
+    for (int i = 0; i < decodedText.size(); i++)
+    {
+        qDebug() << hex << pArray[i];
+    }
+    memcpy((uint8_t *)&body.MaskCode, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA));
+
+    temp += FormatOutput<uint32_t>("掩码", body.MaskCode);
+    temp += FormatOutput<uint32_t>("最大剩余金额", body.MaxSurplusMoney);
+    temp += FormatOutput<uint32_t>("剩余金额一级限值", body.PriceSurplusValue);
+    temp += FormatOutput<uint32_t>("剩余金额二级限值", body.PriceOverrunValue);
+    temp += FormatOutput<uint16_t>("过载", body.SuperFlowTime);
+    temp += FormatOutput<uint16_t>("异常小", body.LittleFlowTime);
+    temp += FormatOutput<uint16_t>("温度低限值", body.TempLowValue);
+    temp += FormatOutput<uint16_t>("温度高限值", body.TempHightValue);
+    temp += FormatOutput<uint16_t>("压力下限", body.PressureLowValue);
+    temp += FormatOutput<uint16_t>("压力上限", body.PressureHighValue);
+    temp += FormatOutput<uint16_t>("持续流量时间", body.ContinuedFlowTime);
+    temp += FormatOutput<uint8_t>("长时间未用", body.LongTimeUnused);
+    temp += FormatOutput<uint32_t>("直通气量", body.DirectGas);
+    temp += FormatOutput<uint16_t>("锂电池报警限值", *(uint16_t *)&body.LiPower[0]);
+    temp += FormatOutput<uint16_t>("干电池报警限值", *(uint16_t *)&body.LiPower[0]);
+    // 地震
+    temp += FormatOutput<uint16_t>("长时间未通信", body.LongTimeUnconnect);
+    temp += FormatOutput("保留位", body.Reserve[0], body.Reserve[1]);
+}
+
+void XinShengParse::ParseSetWarningThresholdRspBody()
 {
     this->GenericRsp();
 }

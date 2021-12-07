@@ -156,6 +156,89 @@ typedef struct{
     uint8_t                                             complement[PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA)];
     XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
 }XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA_RSP_FRAME;  //修改总购余额响应报文
+/*-------------通讯参数设置---------------*/
+//平台->表端
+typedef struct{
+    uint8_t     IPAddress[3][4];
+    uint16_t    Port[3];
+    uint8_t     Communicate_Protocol;
+    uint8_t     ResendTimes;
+    uint8_t     reserve[2];
+}XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA;  //设置通讯参数数据域(22字节)
 
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA      body;
+    uint8_t												complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_FRAME;// 设置通信参数报文
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                      head;
+    XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA  body;
+    uint8_t												complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                        tail;
+}XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_FRAME;// 设置通信参数响应报文
+
+
+/*----------------上报周期设置--------------*/
+typedef struct{
+    uint8_t     ReportyType;  //上报周期类型
+    uint8_t    	ReportTime[3];
+    uint16_t    CycleValue;
+    uint16_t    DataInvert;
+    uint8_t     reserve[2];
+}XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA;  //设置上报周期数据域（10字节）
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                  head;
+    XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA        body;
+    uint8_t                                         complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                    tail;
+}XINSHENG_PROTOCOL_SET_REPORT_PERIOD_FRAME; // 设置上报周期报文
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                  head;
+    XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA	body;
+    uint8_t                                         complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                    tail;
+}XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_FRAME; // 设置上报周期响应报文
+
+
+/*----------------报警阈值设置-------------*/
+typedef struct{
+    uint32_t	MaskCode;       			//掩码
+    uint32_t 	MaxSurplusMoney;			//最大剩余金额
+    int32_t	    PriceSurplusValue;			//剩余金额一级限值
+    int32_t	    PriceOverrunValue;			//剩余金额二级限值
+    int16_t     SuperFlowTime;				//过载
+    int16_t		LittleFlowTime;				//异常小
+    int16_t		TempLowValue;				//温度低限值
+    int16_t		TempHightValue;	   			//温度高限值
+    int16_t     PressureLowValue;  			//压力下限
+    int16_t     PressureHighValue; 			//压力上限
+    int16_t     ContinuedFlowTime; 			//持续流量时间
+    uint8_t     LongTimeUnused;    			//长时间未用
+    int32_t     DirectGas;     	    		//直通气量
+    int16_t     LiPower[2];  			    //锂电池报警限值
+    int16_t     DryPower[2];        		//干电池报警限值
+    uint8_t     Earthquake[2];        		//地震
+    int16_t     LongTimeUnconnect; 			//长时间未连接通信
+    uint8_t		Reserve[2];
+}XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA;  //设置报警阈值数据域(49字节)
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                  head;
+    XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA	body;
+    uint8_t                                         complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                    tail;
+}XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_FRAME;//设置报警阈值报文
+
+typedef struct{
+    XINSHENG_PROTOCOL_FRAME_HEADER                  head;
+    XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA	body;
+    uint8_t                                         complement[PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA)];
+    XINSHENG_PROTOCOL_FRAME_TAIL                    tail;
+}XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_FRAME;//设置报警阈值响应报文
 
 #endif // XINSHENG_H
