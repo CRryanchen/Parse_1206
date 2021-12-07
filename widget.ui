@@ -21,7 +21,18 @@
     <widget class="QWidget" name="widget_2" native="true">
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="0">
-       <widget class="QComboBox" name="comboBox"/>
+       <widget class="QComboBox" name="comboBox">
+        <item>
+         <property name="text">
+          <string>鄂尔多斯新圣</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>上海奉贤</string>
+         </property>
+        </item>
+       </widget>
       </item>
       <item row="1" column="0">
        <widget class="QWidget" name="widget" native="true">
