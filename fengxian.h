@@ -1,10 +1,14 @@
 #ifndef FENGXIAN_H
 #define FENGXIAN_H
+#include "xinsheng.h"
 
 #pragma pack(1)
 
 #define  FX_METER_ID_LEN            7      //地址域长度7字节(14位)
+#undef   ENCRYPTION_LEN
+#undef   PADDING_LENGTH
 #define  ENCRYPTION_LEN             8  //加密因子长度字节数
+#define  PADDING_LENGTH(x)          (ENCRYPTION_LEN - (sizeof(x) % ENCRYPTION_LEN))
 
 /*----------------奉贤协议报文头-----------------*/
 typedef struct
@@ -175,79 +179,30 @@ typedef struct
     fxrq_rtc_time   MeterTime;     //表内时间  6字节 BCD码
     uint8_t         WorkMode;      //工作模式 1字节
 
-}FRAME_ASKBUSINESSFX;                                   //业务上报数据包(176字节)
-
+}FENGXIAN_PROTOCOL_BUSINESS_REPORT_DATA;                                   //业务上报数据包(176字节)
+;
 typedef struct _BUSINESSUPLOADPACK
 {
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_ASKBUSINESSFX                   body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_ASKBUSINESSFX))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}BUSINESSUPLOADPACK;                     //业务上报数据帧(表端发送)
+  FENGXIAN_PROTOCOL_FRAME_HEADER            head;
+  FENGXIAN_PROTOCOL_BUSINESS_REPORT_DATA    body;
+  uint8_t                                   complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_BUSINESS_REPORT_DATA)];
+  FENGXIAN_PROTOCOL_FRAME_TAIL              tail;
+}FENGXIAN_PROTOCOL_BUSINESS_REPORT_FRAME;                     //业务上报数据帧(表端发送)
 
 
 /*----------------心跳包-----------------*/
 typedef struct
 {
     fxrq_rtc_time  current_time;// 心跳包数据内容为当前时间
-}FRAME_HEARTBEAT;       // 心跳包数据内容
+}FENGXIAN_PROTOCOL_HEARTBEAT_PACK_DATA;       // 心跳包数据内容
 
-typedef struct _HEARTBEATPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;
-    FRAME_HEARTBEAT                     body;
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_HEARTBEAT))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}HEARTBEATPACK;         // 心跳包数据帧结构
-
-
-/*----------------联网参数设置-----------------*/
-//联网参数功能码结构体
-typedef union
-{
-    uint8_t funcode;
-    struct
-    {
-        uint8_t SetServerIP         :       1; //设置上报服务器IP
-        uint8_t SetServerPort       :       1; //设置上报服务器端口
-        uint8_t SetServerDNS1       :       1; //设置 DNS 服务器 IP 地址 1
-        uint8_t SetServerDNS2       :       1; //设置 DNS 服务器 IP 地址 2
-        uint8_t SetAPN              :       1; //设置APN
-        uint8_t SetUserName         :       1; //设置用户名（电信模块）
-        uint8_t SetPassWord         :       1; //设置密码（电信模块）
-        uint8_t reserve             :       1; //保留位
-    }detail;
-
-}Network_FunCode;
-
-typedef struct _FRAME_NETWORKPARASET
-{
-    Network_FunCode     NetworkCode;    //功能码  1字节
-    uint8_t             IP_Addr[30];    //IP地址域 30字节 先转 ASCII 码，再转十六进制，不足 30 字节后面补零；
-    uint16_t            IP_Port;        //上报服务器端口
-    uint32_t            DNS_Addr1;      //DNS服务器地址1
-    uint32_t            DNS_Addr2;      //DNS服务器地址2
-    uint8_t             Apn[20];        //APN 20字节 先转ASCII 码，再转十六进制，不足 20 字节后面补零
-    uint8_t             UserName[20];   //用户名 20字节 先转ASCII 码，再转十六进制，不足 20 字节后面补零
-    uint8_t             PassWord[20];   //密码 20字节 先转ASCII 码，再转十六进制，不足 20 字节后面补零
-
-}FRAME_NETWORKPARASET,FRAME_NETWORKPARASETRSP;           //联网参数设置数据域(101字节)
-
-typedef struct _NETWORKPARASETPACK
-{
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_NETWORKPARASET                  body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_NETWORKPARASET))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}NETWORKPARASETPACK;        //联网参数设置数据帧(表端接收)
-
-typedef struct _NETWORKPARASETPACKRSP
-{
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_NETWORKPARASETRSP               body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_NETWORKPARASETRSP))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}NETWORKPARASETPACKRSP;        //联网参数设置应答数据帧(表端发送)
+    FENGXIAN_PROTOCOL_FRAME_HEADER          head;
+    FENGXIAN_PROTOCOL_HEARTBEAT_PACK_DATA   body;
+    uint8_t                                 complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_HEARTBEAT_PACK_DATA)];
+    FENGXIAN_PROTOCOL_FRAME_TAIL            tail;
+}FENGXIAN_PROTOCOL_HEARTBEAT_PACK_FRAME;         // 心跳包数据帧结构
 
 
 /*----------------通讯参数设置-----------------*/
@@ -267,7 +222,7 @@ typedef union
 
 }Connect_FunCode;
 
-typedef struct _FRAME_CONNECTPARASET
+typedef struct
 {
     Connect_FunCode     ConnectCode;    //功能码  1字节
     fxrq_timed_byte     StartTime;      //定时通讯开始时间 2字节
@@ -277,23 +232,16 @@ typedef struct _FRAME_CONNECTPARASET
     uint8_t             ReCommNum;      //重连次数  1字节
     uint8_t             ReCommDelay;    //重连延迟时间 1字节
 
-}FRAME_CONNECTPARASET,FRAME_CONNECTPARASETRSP;  //通讯参数设置数据域(10字节)
+}FENGXIAN_PROTOCOL_SET_COMMUNICATION_PARAM_DATA,FENGXIAN_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA;  //通讯参数设置数据域(10字节)
 
-typedef struct _CONNECTPARASETPACK
+typedef struct
 {
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_CONNECTPARASET                  body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_CONNECTPARASET))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}CONNECTPARASETPACK;           //通讯参数设置数据帧(表端接收)
-
-typedef struct _CONNECTPARASETPACKRSP
-{
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_CONNECTPARASETRSP               body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_CONNECTPARASETRSP))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}CONNECTPARASETPACKRSP;        //通讯参数设置应答数据帧(表端发送)
+  FENGXIAN_PROTOCOL_FRAME_HEADER                        head;
+  FENGXIAN_PROTOCOL_SET_COMMUNICATION_PARAM_DATA        body;        //加密时:数据内容长度后面紧接着为数据内容
+  uint8_t                                               complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_SET_COMMUNICATION_PARAM_DATA)];
+  FENGXIAN_PROTOCOL_FRAME_TAIL                          tail;
+}FENGXIAN_PROTOCOL_SET_COMMUNICATION_PARAM_FRAME,           //通讯参数设置数据帧(表端接收)
+FENGXIAN_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_FRAME;        //通讯参数设置应答数据帧(表端发送)
 
 
 /*----------------功能设置-----------------*/
@@ -314,7 +262,7 @@ typedef union
 
 }FXRQ_FuncCode;
 
-typedef struct _FRAME_FXRQFUNCSET
+typedef struct
 {
     FXRQ_FuncCode   FunCode;   //功能码 1字节
     uint8_t         SecureMode;  //安全模式
@@ -328,23 +276,16 @@ typedef struct _FRAME_FXRQFUNCSET
     uint8_t         LittleTime;    //小流时间 1字节 单位秒
     uint8_t         LittleFlow;     //小流流量上限  单位 0.001立方
 
-}FRAME_FXRQFUNCSET,FRAME_FXRQFUNCSETRSP;   //功能设置数据域(15字节)
+}FENGXIAN_PROTOCOL_SET_FUNCTION_DATA,FENGXIAN_PROTOCOL_SET_FUNCTION_RSP_DATA;   //功能设置数据域(15字节)
 
-typedef struct _FXRQFUNCSETPACK
+typedef struct
 {
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_FXRQFUNCSET                     body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_FXRQFUNCSET))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}FXRQFUNCSETPACK;        //功能设置数据帧(表端接收)
-
-typedef struct _FXRQFUNCSETPACKRSP
-{
-  FENGXIAN_PROTOCOL_FRAME_HEADER        head;
-  FRAME_FXRQFUNCSETRSP                  body;        //加密时:数据内容长度后面紧接着为数据内容
-  uint8_t                               complement[ENCRYPTION_LEN - (sizeof(FRAME_FXRQFUNCSETRSP))%ENCRYPTION_LEN];  //补码的长度计算是根据明文的长度来计算的(明文长度=数据标识的长度值2字节 + 实际数据内容的字节数之和)(即数据域的长度值)注意补码长度是根据加密因子的长度,补齐到加密因子的长度
-  FENGXIAN_PROTOCOL_FRAME_TAIL          tail;
-}FXRQFUNCSETPACKRSP;        //功能设置应答数据帧(表端发送)
+  FENGXIAN_PROTOCOL_FRAME_HEADER                        head;
+  FENGXIAN_PROTOCOL_SET_FUNCTION_DATA                   body;        //加密时:数据内容长度后面紧接着为数据内容
+  uint8_t                                               complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_SET_FUNCTION_DATA)];
+  FENGXIAN_PROTOCOL_FRAME_TAIL                          tail;
+}FENGXIAN_PROTOCOL_SET_FUNCTION_FRAME,                  //功能设置数据帧(表端接收)
+FENGXIAN_PROTOCOL_SET_FUNCTION_RSP_FRAME;               //功能设置应答数据帧(表端发送)
 
 
 /*----------------业务下发-----------------*/
@@ -362,146 +303,110 @@ typedef union
 
 }Fun_Code;
 
-typedef struct _FRAME_BUSINESSDOWN
+typedef struct
 {
     Fun_Code        FunValue;     //功能码 1字节
     int32_t         SurplusMoney;  //账户余额 4字节 单位 精确到分
     uint8_t         SurplusStat;   //余额状态 00 正常 01 低余额  02 余额不足
     fxrq_rtc_time   MeterTime;     //表内时间 6字节 BCD码
 
-}FRAME_BUSINESSDOWN,FRAME_BUSINESSDOWN_RSP;   //业务下发数据域(12字节)
+}FENGXIAN_PROTOCOL_BUSINESS_DISTRIBUTE_DATA,FENGXIAN_PROTOCOL_BUSINESS_DISTRIBUTE_RSP_DATA;   //业务下发数据域(12字节)
 
-typedef struct _BUSINESSDOWNPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_BUSINESSDOWN                  body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_BUSINESSDOWN))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}BUSINESSDOWNPACK;      //业务下发数据帧(表端接收)
-
-typedef struct _BUSINESSDOWNPACKRSP
-{
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_BUSINESSDOWN_RSP              body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_BUSINESSDOWN_RSP))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}BUSINESSDOWNPACKRSP;   //业务下发数据帧应答(表端发送)
+    FENGXIAN_PROTOCOL_FRAME_HEADER                      head;   //帧头
+    FENGXIAN_PROTOCOL_BUSINESS_DISTRIBUTE_DATA          body;   //帧体
+    uint8_t                                             complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_BUSINESS_DISTRIBUTE_DATA)]; //补码
+    FENGXIAN_PROTOCOL_FRAME_TAIL                        tail;
+}FENGXIAN_PROTOCOL_BUSINESS_DISTRIBUTE_FRAME,       //业务下发数据帧(表端接收)
+FENGXIAN_PROTOCOL_BUSINESS_DISTRIBUTE_RSP_FRAME;    //业务下发数据帧应答(表端发送)
 
 
 /*----------------累积量设置-----------------*/
-typedef struct _FRAME_TOTALGASSET
+typedef struct
 {
     uint8_t     TotalGas[5];     //5字节，最后一字节代表最后两位小数值
 
-}FRAME_TOTALGASSET,FRAME_TOTALGASSETRSP;   //累计量设置数据域(5字节)
+}FENGXIAN_PROTOCOL_SET_TOTAL_GAS_DATA,FENGXIAN_PROTOCOL_SET_TOTAL_GAS_RSP_DATA;   //累计量设置数据域(5字节)
 
-typedef struct _TOTALGASSETPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_TOTALGASSET                   body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_TOTALGASSET))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}TOTALGASSETPACK;       //累计量设置数据帧(表端接收)
-
-typedef struct _TOTALGASSETPACKRSP
-{
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_TOTALGASSETRSP                body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_TOTALGASSETRSP))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}TOTALGASSETPACKRSP;    //累计量设置数据帧(表端发送)
+    FENGXIAN_PROTOCOL_FRAME_HEADER                      head;   //帧头
+    FENGXIAN_PROTOCOL_SET_TOTAL_GAS_DATA                body;   //帧体
+    uint8_t                                             complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_SET_TOTAL_GAS_DATA)]; //补码
+    FENGXIAN_PROTOCOL_FRAME_TAIL                        tail;
+}FENGXIAN_PROTOCOL_SET_TOTAL_GAS_FRAME,       //累计量设置数据帧(表端接收)
+FENGXIAN_PROTOCOL_SET_TOTAL_GAS_RSP_FRAME;    //累计量设置数据帧(表端发送)
 
 /*----------------施工开阀-----------------*/
-typedef struct  _FRAME_ROADWORKVALVE
+typedef struct
 {
     uint8_t     valve_control;   //阀门控制(00 开阀)
 
-}FRAME_ROADWORKVALVE,FRAME_ROADWORKVALVERSP;    //施工开阀数据域(1字节)
+}FENGXIAN_PROTOCOL_CONSTRUCTION_VALVE_CONTROL_DATA,FENGXIAN_PROTOCOL_CONSTRUCTION_VALVE_CONTROL_RSP_DATA;    //施工开阀数据域(1字节)
 
-typedef struct _ROADWORKVALVEPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_ROADWORKVALVE                 body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_ROADWORKVALVE))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}ROADWORKVALVEPACK;     //施工开阀数据帧(表端接收)
-
-typedef struct _ROADWORKVALVEPACKRSP
-{
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_ROADWORKVALVERSP              body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_ROADWORKVALVERSP))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}ROADWORKVALVEPACKRSP;      //施工开阀应答数据帧(表端发送)
+    FENGXIAN_PROTOCOL_FRAME_HEADER                      head;   //帧头
+    FENGXIAN_PROTOCOL_CONSTRUCTION_VALVE_CONTROL_DATA   body;   //帧体
+    uint8_t                                             complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_CONSTRUCTION_VALVE_CONTROL_DATA)]; //补码
+    FENGXIAN_PROTOCOL_FRAME_TAIL                        tail;
+}FENGXIAN_PROTOCOL_CONSTRUCTION_VALVE_CONTROL_FRAME,     //施工开阀数据帧(表端接收)
+FENGXIAN_PROTOCOL_CONSTRUCTION_VALVE_CONTROL_RSP_FRAME;      //施工开阀应答数据帧(表端发送)
 
 
 /*----------------通信结束帧-----------------*/
-typedef struct  _FRAME_FXRQCOMMEND
+typedef struct
 {
     fxrq_rtc_time       Server_Time;  //时间
     uint32_t            LadderSurplusGas;  //年累计量 该功能为：计算年累计用量(每年9月1号-次年8月31号),累计用量为整数（m3）
     uint16_t            CurGasPrice;  //当前气价(12字节)
 
-}FRAME_FXRQCOMMEND;    //通讯结束数据帧
+}FENGXIAN_PROTOCOL_COMMUNICATION_END_DATA;    //通讯结束数据帧
 
-typedef struct _FXRQCOMMENDPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_FXRQCOMMEND                   body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_FXRQCOMMEND))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}FXRQCOMMENDPACK;   //通讯结束帧(表端接收)
+    FENGXIAN_PROTOCOL_FRAME_HEADER                      head;   //帧头
+    FENGXIAN_PROTOCOL_COMMUNICATION_END_DATA            body;   //帧体
+    uint8_t                                             complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_COMMUNICATION_END_DATA)]; //补码
+    FENGXIAN_PROTOCOL_FRAME_TAIL                        tail;
+}FENGXIAN_PROTOCOL_COMMUNICATION_END_FRAME;   //通讯结束帧(表端接收)
 
 
 /*----------------更新密钥-----------------*/
-typedef struct _FRAME_KEYUPDATECMD
+typedef struct
 {
     uint8_t     KeyLength;      //密钥长度  1~32
     uint8_t     KeyVersion;     //密钥版本  1~255
     uint8_t     Key[32];        //密钥
 
-}FRAME_KEYUPDATECMD,FRAME_KEYUPDATECMDRSP;   //秘钥更新命令数据域(34字节)
+}FENGXIAN_PROTOCOL_SET_KEY_DATA,FENGXIAN_PROTOCOL_SET_KEY_RSP_DATA;   //秘钥更新命令数据域(34字节)
 
-typedef struct _KEYUPDATECMDPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_KEYUPDATECMD                  body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_KEYUPDATECMD))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}KEYUPDATECMDPACK;      //秘钥更新命令数据帧(表端接收)
-
-typedef struct _KEYUPDATECMDPACKRSP
-{
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_KEYUPDATECMDRSP               body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_KEYUPDATECMDRSP))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-}KEYUPDATECMDPACKRSP;       //秘钥更新命令应答数据帧(表端发送)
+    FENGXIAN_PROTOCOL_FRAME_HEADER                      head;   //帧头
+    FENGXIAN_PROTOCOL_SET_KEY_DATA                      body;   //帧体
+    uint8_t                                             complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_SET_KEY_DATA)]; //补码
+    FENGXIAN_PROTOCOL_FRAME_TAIL                        tail;
+}FENGXIAN_PROTOCOL_SET_KEY_FRAME,      //秘钥更新命令数据帧(表端接收)
+FENGXIAN_PROTOCOL_SET_KEY_RSP_FRAME;       //秘钥更新命令应答数据帧(表端发送)
 
 /*----------------开关阀命令-----------------*/
-typedef struct _FRAME_CONTROLVALVE
+typedef struct
 {
     uint8_t     valve_cmd;      //阀门控制命令
 
-}FRAME_CONTROLVALVE,FRAME_CONTROLVALVERSP;   //开关阀命令数据域(1字节)
+}FENGXIAN_PROTOCOL_REMOTE_VALVE_CONTROL_DATA,FENGXIAN_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA;   //开关阀命令数据域(1字节)
 
-typedef struct _CONTROLVALVEPACK
+typedef struct
 {
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_CONTROLVALVE                  body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_CONTROLVALVE))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
+    FENGXIAN_PROTOCOL_FRAME_HEADER                      head;   //帧头
+    FENGXIAN_PROTOCOL_REMOTE_VALVE_CONTROL_DATA         body;   //帧体
+    uint8_t                                             complement[PADDING_LENGTH(FENGXIAN_PROTOCOL_REMOTE_VALVE_CONTROL_DATA)]; //补码
+    FENGXIAN_PROTOCOL_FRAME_TAIL                        tail;
 
-}CONTROLVALVEPACK;    //开关阀命令（表端接收）
-
-typedef struct _CONTROLVALVEPACKRSP
-{
-    FENGXIAN_PROTOCOL_FRAME_HEADER      head;   //帧头
-    FRAME_CONTROLVALVERSP               body;   //帧体
-    uint8_t                             complement[ENCRYPTION_LEN - (sizeof(FRAME_CONTROLVALVERSP))%ENCRYPTION_LEN]; //补码
-    FENGXIAN_PROTOCOL_FRAME_TAIL        tail;
-
-}CONTROLVALVEPACKRSP;    //开关阀命令应答结果（表端发送）
+}FENGXIAN_PROTOCOL_REMOTE_VALVE_CONTROL_FRAME,      //开关阀命令（表端接收）
+FENGXIAN_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_FRAME;    //开关阀命令应答结果（表端发送）
 
 #pragma pack()
 #endif // FENGXIAN_H
