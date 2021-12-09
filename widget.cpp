@@ -25,6 +25,10 @@ Widget::Widget(QWidget *parent) :
                   qDebug() << ui->lineEdit->text();
                   qDebug() << "我要使用新密钥";
               }
+              else
+              {
+                  qDebug() << "使用初始密钥";
+              }
 
               xs.StartParse();
               ui->outputText->append(xs.m_parsedHead);

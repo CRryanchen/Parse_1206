@@ -44,7 +44,8 @@ static const quint16 crc16Table[] =
 template<typename T>
 QString FormatOutput(const QString &str, const T &data, bool endline = false)
 {
-    if (str.size() >= 6)
+//    if (str.size() >= 6)
+    if (str.toUtf8().size() / 3 > 6)
     {
         return QString().sprintf("%s\t：%0*x", str.toUtf8().data(), sizeof(data) * 2, data) + QString(endline ? "\n" : "");
     }
@@ -66,7 +67,8 @@ QString FormatOutput(const QString &str, const uint8_t &data1, const uint8_t &da
 
 QString FormatOutput(const QString &str, const uint8_t &year, const uint8_t &month, const uint8_t &day, const uint8_t &hour, const uint8_t &min, const uint8_t &sec)
 {
-    if (str.size() >= 6)
+//    if (str.size() >= 6)
+    if (str.toUtf8().size() / 3 > 6)
     {
         return QString().sprintf("%s\t：%0*x/%0*x/%0*x %0*x:%0*x:%0*x\n", str.toUtf8().data(), sizeof(year) * 2, year, sizeof(month) * 2, month, sizeof(day) * 2, day, sizeof(hour) * 2, hour, sizeof(min) * 2, min, sizeof(sec) * 2, sec);
     }
@@ -85,6 +87,7 @@ XinShengParse::XinShengParse(QString &inputData, QObject *parent) : QObject(pare
 
     this->m_useDefaultKeyFlag = true;   // 使用初始密钥
 }
+
 
 void XinShengParse::StartParse()
 {
@@ -151,16 +154,16 @@ void XinShengParse::StartParse()
         case XinShengParse::XINSHENG_PROTOCOL_REPORT_SINGLE:
             if (frameType == XINSHENG_PROTOCOL_REQUEST)
             {
+                this->ComandTypePrint("7021——单条上报数据");
                 qDebug() << "This is 7021 to PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
-//                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
                 this->ParseSingleReportBody();
             }
             else
             {
+                this->ComandTypePrint("7021——单条上报数据响应帧");
                 qDebug() << "This is 7021 rsp from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
-//                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
                 this->ParseSingleReportRspBody();
             }
 
@@ -169,13 +172,14 @@ void XinShengParse::StartParse()
         case XinShengParse::XINSHENG_PROTOCOL_SET_KEY:
             if (frameType == XINSHENG_PROTOCOL_REQUEST)
             {
+                this->ComandTypePrint("7082——设置密钥");
                 qDebug() << "This is 7082 from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_KEY_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_DATA));
-//                this->m_frameBody = this->m_frameData.mid(XINSHENG_PROTOCOL_FRAME_BODY_LENGTH(XINSHENG_PROTOCOL_FRAME_HEADER, XINSHENG_PROTOCOL_SET_KEY_DATA));
                 this->ParseSetKeyBody();
             }
             else
             {
+                this->ComandTypePrint("7082——设置密钥响应帧");
                 qDebug() << "This is 7082 rsp from BD";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_KEY_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_RSP_DATA));
                 this->ParseSetKeyRspBody();
@@ -186,12 +190,14 @@ void XinShengParse::StartParse()
 //        if (frameType == XINSHENG_PROTOCOL_REQUEST) 7024平台下发时也是表示响应，不能区分，所以我使用方向来区分
             if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
             {
+                this->ComandTypePrint("7024——远程阀控");
                 qDebug() << "This is 7024 from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
                 this->ParseSetRemoteValveBody();
             }
             else
             {
+                this->ComandTypePrint("7024——远程阀控响应帧");
                 qDebug() << "This is 7024 rsp from BD";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_RSP_DATA));
                 this->ParseSetRemoteValveRspBody();
@@ -201,12 +207,14 @@ void XinShengParse::StartParse()
         case XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE:
             if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
             {
+                this->ComandTypePrint("7025——修改总购和余额");
                 qDebug() << "This is 7025 from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA));
                 this->ParseSetTotalBalanceBody();
             }
             else
             {
+                this->ComandTypePrint("7025——修改总购和余额响应帧");
                 qDebug() << "This is 7025 rsp from BD";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_RSP_DATA));
                 this->ParseSetTotalBalanceRspBody();
@@ -216,12 +224,14 @@ void XinShengParse::StartParse()
         case XINSHENG_PROTOCOL_SET_COMMUICATION_PARAM:
             if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
             {
+                this->ComandTypePrint("7011——设置通讯参数");
                 qDebug() << "This is 7011 from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA));
                 this->ParseSetCommParamBody();
             }
             else
             {
+                this->ComandTypePrint("7011——设置通讯参数响应帧");
                 qDebug() << "This is 7011 rsp from BD";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_RSP_DATA));
                 this->ParseSetCommParamRspBody();
@@ -232,30 +242,34 @@ void XinShengParse::StartParse()
         case XINSHENG_PROTOCOL_SET_REPORT_PERIOD:
             if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
             {
+                this->ComandTypePrint("7012——设置上报周期");
                 qDebug() << "This is 7012 from PT";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA));
-                this->ParseSetWarningThresholdBody();
+                this->ParseSetReportCycleBody();
             }
             else
             {
+                this->ComandTypePrint("7012——设置上报周期响应帧");
                 qDebug() << "This is 7012 rsp from BD";
                 this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_RSP_DATA));
-                this->ParseSetWarningThresholdRspBody();
+                this->ParseSetReportCycleRspBody();
             }
         break;
 
         case XINSHENG_PROTOCOL_SET_WARNING_THRESHOLD:
         if(transDirection == XINSHENG_PROTOCOL_TRANS_DIRECTION_P2B)
         {
+            this->ComandTypePrint("7014——设置事件阈值");
             qDebug() << "This is 7014 from PT";
             this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA));
-            this->ParseSetReportCycleBody();
+            this->ParseSetWarningThresholdBody();
         }
         else
         {
+            this->ComandTypePrint("7014——设置事件阈值响应帧");
             qDebug() << "This is 7014 rsp from BD";
             this->m_frameBody = this->m_frameData.mid(sizeof(XINSHENG_PROTOCOL_FRAME_HEADER), sizeof(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA) + PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_RSP_DATA));
-            this->ParseSetReportCycleRspBody();
+            this->ParseSetWarningThresholdRspBody();
         }
     break;
 
@@ -564,28 +578,30 @@ void XinShengParse::ParseSingleReportBody()
 
     temp += FormatOutput<uint32_t>("工况总量", body.Total_Working_Condition, true);
     temp += FormatOutput<uint32_t>("标况总量", body.Stand_Working_Condition, true);
-    temp += FormatOutput<uint32_t>("标况瞬时流量", body.Standard_Instant_Flow, true);
-    qDebug() << QString("标况总量").size();
-    qDebug() << QString("标况瞬时流量").size();
-    temp += FormatOutput<uint16_t>("温度", (uint16_t)body.Temperature, true);
-    temp += FormatOutput<uint16_t>("压力", (uint16_t)body.Pressure, true);
-    temp += FormatOutput<uint32_t>("剩余金额", (uint32_t)body.MoneySurplus, true);
-    temp += FormatOutput<uint32_t>("最新结算读数", body.Latest_Settle_Reading, true);
+    temp += FormatOutput<uint32_t>("标况瞬时流量", body.Standard_Instant_Flow) + "(0xFFFFFFFF表具无此项数据)\n";
+    temp += FormatOutput<uint16_t>("温度", (uint16_t)body.Temperature) + "(0xFFFF表具无此项数据)\n";
+    temp += FormatOutput<uint16_t>("压力", (uint16_t)body.Pressure) + "(0xFFFF表具无此项数据)\n";
+    temp += FormatOutput<uint32_t>("剩余金额", (uint32_t)body.MoneySurplus) + "(非表端预付填0X00)\n";
+    temp += FormatOutput<uint32_t>("最新结算读数", body.Latest_Settle_Reading) + "(非表端预付填0X00)\n";
     temp += FormatOutput("最新结算时间", body.Latest_Settle_Timing[0], body.Latest_Settle_Timing[1], body.Latest_Settle_Timing[2], body.Latest_Settle_Timing[3], body.Latest_Settle_Timing[4], body.Latest_Settle_Timing[5]);
     temp += FormatOutput<uint32_t>("告警状态", (uint32_t)body.WarmingStatus) + "(" + CheckAbnormalBit(body.WarmingStatus) + ")\n";
     temp += FormatOutput<uint32_t>("告警状态保留位", (uint32_t)body.WarmingStatusReserveBit) + "(" + CheckAbnormalBit(body.WarmingStatusReserveBit) + ")\n";
     temp += FormatOutput<uint16_t>("干电池电量", (uint16_t)body.DryPower) + QString().sprintf("(%d.%dV)\n",  body.DryPower / 100, body.DryPower % 100);
     temp += FormatOutput<uint16_t>("锂电池电量", (uint16_t)body.LiPower) + QString().sprintf("(%d.%dV)\n",  body.LiPower / 100, body.LiPower % 100);
-    temp += FormatOutput<uint16_t>("信号质量", (uint16_t)body.ModuleRSRP, true);
-    temp += FormatOutput<uint16_t>("信噪比",(uint16_t) body.ModuleSNR, true);
-    temp += FormatOutput<uint16_t>("频点", (uint16_t)body.ModuleEARFCN, true);
-    temp += FormatOutput<uint16_t>("物理小区标识", (uint16_t)body.ModulePhysicalCellId, true);
-    temp += FormatOutput<uint8_t>("覆盖等级", body.ModuleECL, true);
+    temp += FormatOutput<uint16_t>("信号质量", (uint16_t)body.ModuleRSRP) + QString().sprintf("(%d)\n", body.ModuleRSRP);
+    temp += FormatOutput<uint16_t>("信噪比",(uint16_t) body.ModuleSNR) + QString().sprintf("(%d)\n", body.ModuleSNR);
+    temp += FormatOutput<uint16_t>("频点", (uint16_t)body.ModuleEARFCN) + QString().sprintf("(%d)\n", body.ModuleEARFCN);
+    temp += QString("基站小区标识\t\t：");
+    for (int i = 0; i < 6; i++)
+    {
+        temp += QString().sprintf("%02x", (uint8_t)body.ModuleCellId[i]);
+    }
+    temp += FormatOutput<uint16_t>("\n物理小区标识", (uint16_t)body.ModulePhysicalCellId) + QString().sprintf("(%d)\n", body.ModulePhysicalCellId);
+    temp += FormatOutput<uint8_t>("增强覆盖等级", body.ModuleECL) + QString().sprintf("(%d)\n", body.ModuleECL);
     temp += FormatOutput("固件版本号", body.SoftWareVersion[0], body.SoftWareVersion[1], body.SoftWareVersion[2], body.SoftWareVersion[3]);
     temp += FormatOutput<uint16_t>("保留位", body.Reserve, true);
 
-    //temp += (QString("基站小区标识\t\t：%1").arg((body.ModuleEARFCN), sizeof(body.ModuleEARFCN) * 2, 16, QLatin1Char('0')));
-    this->m_parsedBody = temp;
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSingleReportRspBody()
@@ -605,7 +621,7 @@ void XinShengParse::ParseSingleReportRspBody()
     temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
     temp += FormatOutput("服务器时间", body.Servertime[0], body.Servertime[1], body.Servertime[2], body.Servertime[3], body.Servertime[4], body.Servertime[5]);
     temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
-    this->m_parsedBody = temp;
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::GenericRsp()
@@ -624,7 +640,7 @@ void XinShengParse::GenericRsp()
     temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
     temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
 
-    this->m_parsedBody = temp;
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSetKeyBody()
@@ -652,7 +668,7 @@ void XinShengParse::ParseSetKeyBody()
     this->m_latestKey = QByteArray::fromHex(key.toLocal8Bit());            // 获取平台下发的最新密钥
 
     // 解析数据赋值给m_parsedBody
-    this->m_parsedBody = temp;
+    this->m_parsedBody += temp;
 }
 
 
@@ -673,9 +689,23 @@ void XinShengParse::ParseSetRemoteValveBody()
     pArray = (uint8_t *)decodedText.data();
     memcpy((uint8_t *)&body.valveCommand, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
 
-    temp += FormatOutput<uint16_t>("开关阀命令", body.valveCommand, true);
+    temp += FormatOutput<uint16_t>("开关阀命令", body.valveCommand);
+    switch(body.valveCommand)
+    {
+        case 0X00:
+            temp += "(强制关阀(用户无法打开))\n";
+        break;
 
-    this->m_parsedBody = temp;
+        case 0X01:
+            temp += "开阀\n";
+        break;
+
+        case 0X02:
+            temp += "(临时关阀(用户可以打开))\n";
+        break;
+    }
+
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSetRemoteValveRspBody()
@@ -704,7 +734,7 @@ void XinShengParse::ParseSetTotalBalanceBody()
     temp += FormatOutput<uint32_t>("当前单价", body.CurrentPrice, true);
     temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
 
-    this->m_parsedBody = temp;
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSetTotalBalanceRspBody()
@@ -728,7 +758,7 @@ void XinShengParse::ParseSetCommParamBody()
     }
     memcpy((uint8_t *)&body.IPAddress[0][0], pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA));
 
-    this->m_parsedBody = temp;
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSetCommParamRspBody()
@@ -764,6 +794,8 @@ void XinShengParse::ParseSetReportCycleBody()
 //                                                );
 //    temp += (QString("上报周期\t\t：%1\n").arg((body.CycleValue), sizeof(body.CycleValue) * 2, 16, QLatin1Char('0')));
 //    temp += (QString("数据采集间隔\t\t：%1\n").arg((body.DataInvert), sizeof(body.DataInvert) * 2, 16, QLatin1Char('0')));
+
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSetReportCycleRspBody()
@@ -805,6 +837,8 @@ void XinShengParse::ParseSetWarningThresholdBody()
     // 地震
     temp += FormatOutput<uint16_t>("长时间未通信", body.LongTimeUnconnect);
     temp += FormatOutput("保留位", body.Reserve[0], body.Reserve[1]);
+
+    this->m_parsedBody += temp;
 }
 
 void XinShengParse::ParseSetWarningThresholdRspBody()
@@ -864,4 +898,9 @@ void XinShengParse::setUseDefaultKey(bool res)
 
     this->m_useDefaultKeyFlag = res;
 
+}
+
+void XinShengParse::ComandTypePrint(const char *printMsg)
+{
+    this->m_parsedBody += QString().sprintf("---------------%s-----------------\n", printMsg);
 }

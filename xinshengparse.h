@@ -71,6 +71,9 @@ public:
     QByteArray GetParseKey(void);
     void setUseDefaultKey(bool res);
 
+private:
+    void ComandTypePrint(const char *printMsg);
+
 signals:
 
 public slots:
