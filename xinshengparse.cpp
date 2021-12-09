@@ -283,7 +283,8 @@ XinShengParse::COMMAND_TYPE XinShengParse::ParseHead(XinShengParse::FRAME_TYPE &
 {
     QString temp = 0;
 
-    this->m_defaultKey = "QW";
+//    this->m_defaultKey = "QW";
+    this->m_defaultKey = "QC";
     qDebug() << "设置初始密钥";
 
 
@@ -494,6 +495,7 @@ void XinShengParse::ParseSingleReportBody()
     pArray = (uint8_t *)decodedText.data();
     // 将解密后的数据赋值给body，长度需要减去补码的长度
     memcpy((uint8_t *)&body.MeterType, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
     temp += FormatOutput<uint16_t>("表具类型", body.MeterType);
     switch (body.MeterType)
@@ -617,6 +619,7 @@ void XinShengParse::ParseSingleReportRspBody()
     pArray = (uint8_t *)decodedText.data();
     // 将解密后的数据赋值给body，长度需要减去补码的长度
     memcpy((uint8_t *)&body.RespondCode, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REPORT_SINGLE_RSP_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
     temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
     temp += FormatOutput("服务器时间", body.Servertime[0], body.Servertime[1], body.Servertime[2], body.Servertime[3], body.Servertime[4], body.Servertime[5]);
@@ -636,6 +639,7 @@ void XinShengParse::GenericRsp()
     pArray = (uint8_t *)decodedText.data();
     // 将解密后的数据赋值给body，长度需要减去补码的长度
     memcpy((uint8_t *)&body.RespondCode, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_GENERIC_RSP_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
     temp += FormatOutput<uint16_t>("响应码", body.RespondCode, true);
     temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
@@ -657,6 +661,7 @@ void XinShengParse::ParseSetKeyBody()
 
     pArray = (uint8_t *)decodedText.data();
     memcpy((uint8_t *)&body.securitykey[0], pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_KEY_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
     temp += QString("密钥\t\t：");
     for (int i = 0; i < 16; i++)
@@ -688,6 +693,7 @@ void XinShengParse::ParseSetRemoteValveBody()
 
     pArray = (uint8_t *)decodedText.data();
     memcpy((uint8_t *)&body.valveCommand, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_REMOTE_VALVE_CONTROL_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
     temp += FormatOutput<uint16_t>("开关阀命令", body.valveCommand);
     switch(body.valveCommand)
@@ -723,15 +729,12 @@ void XinShengParse::ParseSetTotalBalanceBody()
     uint8_t *pArray = NULL;
 
     pArray = (uint8_t *)decodedText.data();
-    for (int i = 0; i < decodedText.size(); i++)
-    {
-        qDebug() << hex << pArray[i];
-    }
     memcpy((uint8_t *)&body.TotoalMoney, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_MODIFY_PURCHASE_BALANCE_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
-    temp += FormatOutput<uint32_t>("充值总购余额", body.TotoalMoney, true);
-    temp += FormatOutput<uint32_t>("剩余金额", body.LeftMoney, true);
-    temp += FormatOutput<uint32_t>("当前单价", body.CurrentPrice, true);
+    temp += FormatOutput<uint32_t>("充值总购余额", body.TotoalMoney) + QString().sprintf("(%u)\n", body.TotoalMoney);
+    temp += FormatOutput<uint32_t>("剩余金额", body.LeftMoney) + QString().sprintf("(%d.%d)\n", body.LeftMoney / 100, body.LeftMoney % 100);
+    temp += FormatOutput<uint32_t>("当前单价", body.CurrentPrice) + QString().sprintf("(%d.%d)\n", body.CurrentPrice / 100, body.CurrentPrice % 100);
     temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
 
     this->m_parsedBody += temp;
@@ -752,11 +755,20 @@ void XinShengParse::ParseSetCommParamBody()
     uint8_t *pArray = NULL;
 
     pArray = (uint8_t *)decodedText.data();
-    for (int i = 0; i < decodedText.size(); i++)
-    {
-        qDebug() << hex << pArray[i];
-    }
     memcpy((uint8_t *)&body.IPAddress[0][0], pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_COMMUNICATION_PARAM_DATA));
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
+
+    this->m_parsedBody += temp;
+
+    temp += FormatOutput<uint32_t>("主服务器IP地址", *(uint32_t *)&body.IPAddress[0][0]) + QString().sprintf("(%d.%d.%d.%d)\n", body.IPAddress[0][0], body.IPAddress[0][1], body.IPAddress[0][2], body.IPAddress[0][3]);
+    temp += FormatOutput<uint32_t>("备用服务器1IP地址", *(uint32_t *)&body.IPAddress[1][0]) + QString().sprintf("(%d.%d.%d.%d)\n", body.IPAddress[1][0], body.IPAddress[1][1], body.IPAddress[1][2], body.IPAddress[1][3]);
+    temp += FormatOutput<uint32_t>("备用服务器2IP地址", *(uint32_t *)&body.IPAddress[2][0]) + QString().sprintf("(%d.%d.%d.%d)\n", body.IPAddress[2][0], body.IPAddress[2][1], body.IPAddress[2][2], body.IPAddress[2][3]);
+    temp += FormatOutput<uint16_t>("端口号1", body.Port[0]) + QString().sprintf("(%d)\n", body.Port[0]);
+    temp += FormatOutput<uint16_t>("端口号2", body.Port[1]) + QString().sprintf("(%d)\n", body.Port[1]);
+    temp += FormatOutput<uint16_t>("端口号3", body.Port[2]) + QString().sprintf("(%d)\n", body.Port[2]);
+    temp += FormatOutput<uint8_t>("通信协议", body.Communicate_Protocol) + QString().sprintf("(%s)\n", body.Communicate_Protocol?"Coap":"UDP");
+    temp += FormatOutput<uint8_t>("重发次数", body.ResendTimes, true);
+    temp += FormatOutput("保留位", body.reserve[0], body.reserve[1]);
 
     this->m_parsedBody += temp;
 }
@@ -776,24 +788,37 @@ void XinShengParse::ParseSetReportCycleBody()
     uint8_t *pArray = NULL;
 
     pArray = (uint8_t *)decodedText.data();
-    for (int i = 0; i < decodedText.size(); i++)
-    {
-        qDebug() << hex << pArray[i];
-    }
     memcpy((uint8_t *)&body.ReportyType, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_REPORT_PERIOD_DATA));
 
-    temp += FormatOutput<uint8_t>("上报周期类型", body.ReportyType, true);
-    temp += FormatOutput("上报时间", body.ReportTime[0], body.ReportTime[1], body.ReportTime[2], body.ReportTime[3], body.ReportTime[4], body.ReportTime[5]);
-    temp += FormatOutput<uint16_t>("上报周期", body.CycleValue);
-    temp += FormatOutput<uint16_t>("数据采集间隔", body.DataInvert);
+    temp += "解密密钥\t\t：" + GetParseKey().toHex() + "\n";
 
-//    temp += (QString("上报周期类型\t\t：%1\n").arg((body.ReportyType), sizeof(body.ReportyType) * 2, 16, QLatin1Char('0')));
-//    temp += (QString("上报时间\t\t：%1:%2:%3\n").arg((body.ReportTime[0]), sizeof(body.ReportTime[0]) * 2, 16, QLatin1Char('0'))
-//                                              .arg((body.ReportTime[1]), sizeof(body.ReportTime[1]) * 2, 16, QLatin1Char('0'))
-//                                              .arg((body.ReportTime[2]), sizeof(body.ReportTime[2]) * 2, 16, QLatin1Char('0'))
-//                                                );
-//    temp += (QString("上报周期\t\t：%1\n").arg((body.CycleValue), sizeof(body.CycleValue) * 2, 16, QLatin1Char('0')));
-//    temp += (QString("数据采集间隔\t\t：%1\n").arg((body.DataInvert), sizeof(body.DataInvert) * 2, 16, QLatin1Char('0')));
+    temp += FormatOutput<uint8_t>("上报周期类型", body.ReportyType);
+    switch(body.ReportyType)
+    {
+        case 0x01:
+            temp += "(每N分钟上报(单条上报))\n";
+        break;
+
+        case 0x02:
+            temp += "(每N小时上报(单条上报))\n";
+        break;
+
+        case 0x03:
+            temp += "(每N天上报(单条上报))\n";
+        break;
+
+        case 0x04:
+            temp += "(每N小时上报(打包上报))\n";
+        break;
+
+        case 0x05:
+            temp += "(每N天上报(打包上报))\n";
+        break;
+    }
+
+    temp += QString().sprintf("上报时间\t\t：%02d:%02d:%02d\n", body.ReportTime[0], body.ReportTime[1], body.ReportTime[2]);
+    temp += FormatOutput<uint16_t>("上报周期", body.CycleValue) +  QString().sprintf("(%hd)\n", body.CycleValue);
+    temp += FormatOutput<uint16_t>("数据采集间隔", body.DataInvert);
 
     this->m_parsedBody += temp;
 }
@@ -819,21 +844,24 @@ void XinShengParse::ParseSetWarningThresholdBody()
     }
     memcpy((uint8_t *)&body.MaskCode, pArray, this->m_frameBody.size() - PADDING_LENGTH(XINSHENG_PROTOCOL_SET_WARNING_THRESEHOLD_DATA));
 
-    temp += FormatOutput<uint32_t>("掩码", body.MaskCode);
-    temp += FormatOutput<uint32_t>("最大剩余金额", body.MaxSurplusMoney);
-    temp += FormatOutput<uint32_t>("剩余金额一级限值", body.PriceSurplusValue);
-    temp += FormatOutput<uint32_t>("剩余金额二级限值", body.PriceOverrunValue);
-    temp += FormatOutput<uint16_t>("过载", body.SuperFlowTime);
-    temp += FormatOutput<uint16_t>("异常小", body.LittleFlowTime);
-    temp += FormatOutput<uint16_t>("温度低限值", body.TempLowValue);
-    temp += FormatOutput<uint16_t>("温度高限值", body.TempHightValue);
-    temp += FormatOutput<uint16_t>("压力下限", body.PressureLowValue);
-    temp += FormatOutput<uint16_t>("压力上限", body.PressureHighValue);
-    temp += FormatOutput<uint16_t>("持续流量时间", body.ContinuedFlowTime);
-    temp += FormatOutput<uint8_t>("长时间未用", body.LongTimeUnused);
-    temp += FormatOutput<uint32_t>("直通气量", body.DirectGas);
-    temp += FormatOutput<uint16_t>("锂电池报警限值", *(uint16_t *)&body.LiPower[0]);
-    temp += FormatOutput<uint16_t>("干电池报警限值", *(uint16_t *)&body.LiPower[0]);
+    temp += FormatOutput<uint32_t>("掩码", body.MaskCode) + "(" + QString::number(body.MaskCode, 2) +")";
+    temp += FormatOutput<uint32_t>("最大剩余金额", body.MaxSurplusMoney) + QString().sprintf("(%d.%d)\n", body.MaxSurplusMoney / 100, body.MaxSurplusMoney % 100);
+    temp += FormatOutput<uint32_t>("剩余金额一级限值", body.PriceSurplusValue) + QString().sprintf("(%d.%d)\n", body.PriceSurplusValue / 100, body.PriceSurplusValue % 100);
+    temp += FormatOutput<uint32_t>("剩余金额二级限值", body.PriceOverrunValue) + QString().sprintf("(%d.%d)\n", body.PriceOverrunValue / 100, body.PriceOverrunValue % 100);
+    temp += FormatOutput<uint16_t>("过载", body.SuperFlowTime) + QString().sprintf("(%d)\n", body.SuperFlowTime);
+    temp += FormatOutput<uint16_t>("异常小", body.LittleFlowTime) + QString().sprintf("(%d)\n", body.LittleFlowTime);
+    temp += FormatOutput<uint16_t>("温度低限值", body.TempLowValue) + QString().sprintf("(%d.%d)\n", body.TempLowValue / 100, body.TempLowValue % 100);
+    temp += FormatOutput<uint16_t>("温度高限值", body.TempHightValue) + QString().sprintf("(%d.%d)\n", body.TempHightValue / 100, body.TempHightValue % 100);
+    temp += FormatOutput<uint16_t>("压力下限", body.PressureLowValue) + QString().sprintf("(%d.%d)\n", body.PressureLowValue / 10, body.PressureLowValue % 10);
+    temp += FormatOutput<uint16_t>("压力上限", body.PressureHighValue) + QString().sprintf("(%d.%d)\n", body.PressureHighValue / 10, body.PressureHighValue % 10);
+    temp += FormatOutput<uint16_t>("持续流量时间", body.ContinuedFlowTime) + QString().sprintf("(%d)\n", body.ContinuedFlowTime);
+    temp += FormatOutput<uint8_t>("长时间未用", body.LongTimeUnused) + QString().sprintf("(%d)\n", body.LongTimeUnused);
+    temp += FormatOutput<uint32_t>("直通气量", body.DirectGas) + QString().sprintf("(%d.%d)\n", body.DirectGas / 100, body.DirectGas % 100);
+    temp += FormatOutput<uint16_t>("内部电池一级报警限值", *(uint16_t *)&body.LiPower[0]) + QString().sprintf("(%d.%d)\n", body.LiPower[0] / 100, body.LiPower[0] % 100);
+    temp += FormatOutput<uint16_t>("内部电池二级报警限值", *(uint16_t *)&body.LiPower[1]) + QString().sprintf("(%d.%d)\n", body.LiPower[1] / 100, body.LiPower[1] % 100);
+    temp += FormatOutput<uint16_t>("外部电池一级报警限值", *(uint16_t *)&body.DryPower[0]) + QString().sprintf("(%d.%d)\n", body.DryPower[0] / 100, body.DryPower[0] % 100);
+    temp += FormatOutput<uint16_t>("外部电池二级报警限值", *(uint16_t *)&body.DryPower[1]) + QString().sprintf("(%d.%d)\n", body.DryPower[1] / 100, body.DryPower[1] % 100);
+    temp += FormatOutput<uint16_t>("地震限值", *(uint16_t *)&body.Earthquake[0]) + "暂未使用\n";
     // 地震
     temp += FormatOutput<uint16_t>("长时间未通信", body.LongTimeUnconnect);
     temp += FormatOutput("保留位", body.Reserve[0], body.Reserve[1]);
